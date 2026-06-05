@@ -9,19 +9,20 @@ from study_engine import DEMO_CASES, EXAMPLE_INPUT, build_rescue_plan
 
 CSS = """
 :root {
-  --ink: #132022;
-  --muted: #536463;
-  --paper: #f4f1e8;
-  --card: rgba(255, 252, 242, 0.92);
-  --card-solid: #fffaf0;
-  --line: #c9c2af;
-  --green: #006c5b;
-  --green-dark: #06483f;
-  --coral: #b74336;
-  --gold: #b98717;
-  --blue: #1f5574;
-  --graph: rgba(31, 85, 116, 0.10);
-  --shadow: rgba(37, 29, 16, 0.12);
+  --ink: #0d211e;
+  --muted: #344946;
+  --muted-soft: #50635f;
+  --paper: #f6ecdc;
+  --card: rgba(255, 250, 239, 0.98);
+  --card-solid: #fff9ed;
+  --line: #a79c87;
+  --green: #00624f;
+  --green-dark: #053d35;
+  --coral: #9f3429;
+  --gold: #8f6509;
+  --blue: #174d68;
+  --graph: rgba(23, 77, 104, 0.08);
+  --shadow: rgba(37, 29, 16, 0.15);
 }
 
 .gradio-container {
@@ -33,7 +34,9 @@ CSS = """
     var(--paper);
   background-size: auto, 24px 24px, 24px 24px, auto;
   color: var(--ink);
-  font-family: "Avenir Next", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  font-family: "Trebuchet MS", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
   min-height: 100vh;
 }
 
@@ -60,8 +63,8 @@ CSS = """
   border: 1px solid rgba(19, 32, 34, 0.18);
   border-radius: 24px;
   background:
-    linear-gradient(135deg, rgba(255, 252, 242, 0.98), rgba(246, 230, 199, 0.74));
-  box-shadow: 0 18px 48px rgba(37, 29, 16, 0.10);
+    linear-gradient(135deg, rgba(255, 251, 241, 0.99), rgba(245, 225, 190, 0.88));
+  box-shadow: 0 18px 48px rgba(37, 29, 16, 0.13);
   padding: clamp(18px, 3vw, 30px);
 }
 
@@ -82,10 +85,10 @@ CSS = """
   width: fit-content;
   border: 1px solid rgba(0, 108, 91, 0.28);
   border-radius: 999px;
-  background: rgba(0, 108, 91, 0.08);
+  background: rgba(0, 98, 79, 0.11);
   color: var(--green-dark);
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 900;
   letter-spacing: 0.10em;
   padding: 8px 12px;
   text-transform: uppercase;
@@ -94,7 +97,8 @@ CSS = """
 .hero h1 {
   position: relative;
   margin: 14px 0 8px;
-  font-family: ui-serif, Georgia, "Times New Roman", serif;
+  font-family: Georgia, "Times New Roman", ui-serif, serif;
+  color: var(--ink);
   font-size: clamp(34px, 5vw, 58px);
   line-height: 0.98;
   letter-spacing: -0.045em;
@@ -104,9 +108,10 @@ CSS = """
 .hero p {
   margin: 0;
   max-width: 720px;
-  color: #405150;
-  font-size: clamp(15px, 2vw, 18px);
-  line-height: 1.58;
+  color: #233936;
+  font-size: clamp(16px, 2vw, 19px);
+  font-weight: 650;
+  line-height: 1.52;
 }
 
 .hero-steps {
@@ -117,12 +122,12 @@ CSS = """
 }
 
 .hero-steps span {
-  border: 1px solid rgba(19, 32, 34, 0.14);
+  border: 1px solid rgba(19, 32, 34, 0.22);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.62);
-  color: #2e4242;
-  font-size: 13px;
-  font-weight: 700;
+  background: rgba(255, 255, 255, 0.78);
+  color: #172e2a;
+  font-size: 14px;
+  font-weight: 850;
   padding: 8px 11px;
 }
 
@@ -135,16 +140,16 @@ CSS = """
 }
 
 .hero-proof div {
-  border: 1px solid rgba(19, 32, 34, 0.13);
+  border: 1px solid rgba(19, 32, 34, 0.20);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.58);
+  background: rgba(255, 255, 255, 0.78);
   padding: 12px;
 }
 
 .hero-proof b {
   display: block;
   color: var(--coral);
-  font-family: ui-serif, Georgia, "Times New Roman", serif;
+  font-family: Georgia, "Times New Roman", ui-serif, serif;
   font-size: clamp(22px, 3vw, 30px);
   letter-spacing: -0.04em;
   line-height: 0.95;
@@ -153,9 +158,9 @@ CSS = """
 .hero-proof span {
   display: block;
   margin-top: 5px;
-  color: var(--muted);
-  font-size: 12px;
-  font-weight: 750;
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 850;
   line-height: 1.35;
 }
 
@@ -167,17 +172,17 @@ CSS = """
 }
 
 .status-card {
-  border: 1px solid rgba(19, 32, 34, 0.14);
+  border: 1px solid rgba(19, 32, 34, 0.20);
   border-radius: 20px;
-  background: rgba(255, 250, 240, 0.78);
-  box-shadow: 0 16px 40px rgba(37, 29, 16, 0.08);
+  background: rgba(255, 250, 240, 0.92);
+  box-shadow: 0 16px 40px rgba(37, 29, 16, 0.10);
   padding: 13px 14px;
 }
 
 .status-card b {
   display: block;
   color: var(--green-dark);
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.10em;
   text-transform: uppercase;
 }
@@ -186,19 +191,20 @@ CSS = """
   display: block;
   margin-top: 5px;
   color: var(--muted);
-  font-size: 13px;
-  line-height: 1.4;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.38;
 }
 
 .model-budget {
   display: grid;
-  grid-template-columns: 1.2fr repeat(3, minmax(0, 1fr));
+  grid-template-columns: 1.2fr repeat(2, minmax(0, 1fr));
   gap: 10px;
   margin-top: 10px;
 }
 
 .budget-card {
-  border: 1px solid rgba(19, 32, 34, 0.15);
+  border: 1px solid rgba(19, 32, 34, 0.22);
   border-radius: 20px;
   background: var(--card-solid);
   padding: 13px 14px;
@@ -214,6 +220,7 @@ CSS = """
   display: block;
   color: var(--ink);
   font-size: 13px;
+  font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
@@ -222,8 +229,9 @@ CSS = """
   display: block;
   margin-top: 6px;
   color: var(--muted);
-  font-size: 13px;
-  line-height: 1.42;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.38;
 }
 
 #main-workspace {
@@ -234,10 +242,10 @@ CSS = """
 
 .input-card,
 .output-stack {
-  border: 1px solid rgba(19, 32, 34, 0.16);
+  border: 1px solid rgba(19, 32, 34, 0.22);
   border-radius: 26px;
   background: var(--card);
-  box-shadow: 0 18px 52px rgba(37, 29, 16, 0.08);
+  box-shadow: 0 18px 52px rgba(37, 29, 16, 0.11);
   padding: clamp(14px, 2vw, 20px);
 }
 
@@ -254,23 +262,25 @@ CSS = """
 
 .section-title h2 {
   margin: 0;
-  font-family: ui-serif, Georgia, "Times New Roman", serif;
-  font-size: 24px;
+  font-family: Georgia, "Times New Roman", ui-serif, serif;
+  color: var(--ink);
+  font-size: 26px;
   letter-spacing: -0.02em;
 }
 
 .section-title p {
   margin: 6px 0 0;
   color: var(--muted);
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.42;
 }
 
 .panel {
-  border: 1px solid rgba(19, 32, 34, 0.13);
+  border: 1px solid rgba(19, 32, 34, 0.22);
   border-radius: 20px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 250, 240, 0.74));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 250, 240, 0.90));
   box-shadow: none;
   margin-bottom: 10px;
   padding: 10px 12px;
@@ -278,7 +288,7 @@ CSS = """
 
 .panel h3 {
   color: var(--green-dark);
-  font-family: ui-serif, Georgia, "Times New Roman", serif;
+  font-family: Georgia, "Times New Roman", ui-serif, serif;
   letter-spacing: -0.01em;
 }
 
@@ -311,12 +321,45 @@ CSS = """
 .input-card input,
 .input-card select {
   border-radius: 14px !important;
+  border-color: rgba(19, 32, 34, 0.26) !important;
+  background: #fffdf7 !important;
+  color: var(--ink) !important;
+  font-size: 15px !important;
+  font-weight: 650 !important;
 }
 
 .input-card label,
 .input-card .wrap label {
-  color: #243636 !important;
-  font-weight: 750 !important;
+  color: var(--ink) !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+}
+
+.gradio-container input::placeholder,
+.gradio-container textarea::placeholder {
+  color: #667672 !important;
+  opacity: 1 !important;
+}
+
+.gradio-container .prose,
+.gradio-container .markdown,
+.gradio-container .prose p,
+.gradio-container .prose li,
+.gradio-container .prose span,
+.gradio-container .markdown p,
+.gradio-container .markdown li,
+.gradio-container .markdown span {
+  color: var(--ink) !important;
+  font-size: 14px;
+  line-height: 1.48;
+}
+
+.gradio-container .block-info,
+.gradio-container .form .secondary-wrap,
+.gradio-container label span,
+.gradio-container .wrap span {
+  color: var(--muted-soft) !important;
+  opacity: 1 !important;
 }
 
 .primary-action button {
@@ -336,6 +379,7 @@ CSS = """
 .secondary-action button {
   border-color: var(--coral) !important;
   color: var(--coral) !important;
+  background: #fff7ed !important;
   border-radius: 16px !important;
   font-weight: 800 !important;
   min-height: 46px;
@@ -347,25 +391,26 @@ CSS = """
   border-radius: 12px;
   background: rgba(189, 143, 34, 0.10);
   padding: 10px 12px;
-  font-size: 13px;
-  color: #443715;
+  font-size: 14px;
+  font-weight: 650;
+  color: #322509;
 }
 
 .runtime-label {
   margin: 4px 0 -4px;
   color: var(--green-dark);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 850;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .final-sheet {
-  border: 1px solid rgba(19, 32, 34, 0.30);
+  border: 1px solid rgba(19, 32, 34, 0.34);
   border-radius: 24px;
   background:
     radial-gradient(circle at top right, rgba(189, 143, 34, 0.25), transparent 34%),
-    linear-gradient(135deg, rgba(0, 108, 91, 0.10), rgba(255, 255, 255, 0.94));
+    linear-gradient(135deg, rgba(0, 98, 79, 0.12), rgba(255, 255, 255, 0.98));
   padding: clamp(16px, 3vw, 24px);
   color: var(--ink);
 }
@@ -380,7 +425,7 @@ CSS = """
 
 .final-sheet h2 {
   margin: 4px 0 14px;
-  font-family: ui-serif, Georgia, "Times New Roman", serif;
+  font-family: Georgia, "Times New Roman", ui-serif, serif;
   font-size: clamp(27px, 4vw, 42px);
   line-height: 0.98;
   letter-spacing: -0.045em;
@@ -395,6 +440,7 @@ CSS = """
 .sheet-grid h3 {
   margin: 0 0 8px;
   color: var(--blue);
+  font-weight: 900;
 }
 
 .sheet-rule {
@@ -427,29 +473,32 @@ CSS = """
 .sheet-footer {
   margin: 10px 0 0;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 650;
 }
 
 .demo-cases {
   margin-top: 14px;
   border: 1px dashed rgba(19, 32, 34, 0.20);
   border-radius: 18px;
-  background: rgba(255, 252, 242, 0.64);
+  background: rgba(255, 252, 242, 0.92);
   box-shadow: none;
   padding: 12px;
 }
 
 .demo-cases h2 {
   margin: 0 0 6px;
-  font-family: ui-serif, Georgia, "Times New Roman", serif;
-  font-size: 24px;
+  font-family: Georgia, "Times New Roman", ui-serif, serif;
+  color: var(--ink);
+  font-size: 25px;
   letter-spacing: -0.02em;
 }
 
 .demo-cases p {
   margin: 0 0 12px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: 14px;
+  font-weight: 650;
 }
 
 .case-list {
@@ -462,9 +511,9 @@ CSS = """
   min-height: 44px;
   border: 1px solid rgba(0, 108, 91, 0.18) !important;
   border-radius: 15px !important;
-  background: rgba(255, 250, 240, 0.72) !important;
-  color: #243636 !important;
-  font-size: 13px !important;
+  background: rgba(255, 250, 240, 0.94) !important;
+  color: var(--ink) !important;
+  font-size: 14px !important;
   font-weight: 800 !important;
   text-align: left !important;
 }
@@ -482,9 +531,9 @@ CSS = """
 }
 
 .claim-card {
-  border: 1px solid rgba(19, 32, 34, 0.16);
+  border: 1px solid rgba(19, 32, 34, 0.22);
   border-radius: 16px;
-  background: rgba(255, 252, 242, 0.70);
+  background: rgba(255, 252, 242, 0.94);
   padding: 12px;
   box-shadow: none;
 }
@@ -492,7 +541,7 @@ CSS = """
 .claim-card b {
   display: block;
   color: var(--green-dark);
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.10em;
   text-transform: uppercase;
 }
@@ -501,15 +550,16 @@ CSS = """
   display: block;
   margin-top: 6px;
   color: var(--muted);
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.42;
 }
 
 .proof-details {
   margin-top: 18px;
   border: 1px solid rgba(19, 32, 34, 0.14);
   border-radius: 20px;
-  background: rgba(255, 252, 242, 0.68);
+  background: rgba(255, 252, 242, 0.94);
   padding: 12px 14px;
 }
 
@@ -521,8 +571,9 @@ CSS = """
 
 .proof-details p {
   color: var(--muted);
-  font-size: 13px;
-  line-height: 1.45;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.42;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -704,7 +755,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
             """
 <section class="demo-status" aria-label="Demo status">
   <div class="status-card"><b>Loaded case</b><span>Physics numericals: formula panic, 120 minutes left, confidence 2/5.</span></div>
-  <div class="status-card"><b>Space-safe</b><span>CPU-only Spaces use the deterministic fallback; upgraded hardware can test MiniCPM or Gemma.</span></div>
+  <div class="status-card"><b>Space-safe</b><span>CPU-only Spaces use the deterministic fallback; upgraded hardware can test MiniCPM.</span></div>
   <div class="status-card"><b>Best judge path</b><span>Click once, then show triage clock, proof target, final sheet, and field note.</span></div>
 </section>
 """,
@@ -713,10 +764,9 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
         gr.HTML(
             """
 <section class="model-budget" aria-label="Model budget">
-  <div class="budget-card"><b>Model budget</b><span>The hackathon ceiling is <=32B parameters, but hardware is the real gate.</span></div>
-  <div class="budget-card"><b>HF CPU basic</b><span>2 vCPU, 16GB RAM, 50GB disk: great for the product demo, not for a 27B live model.</span></div>
+  <div class="budget-card"><b>Model budget</b><span>MiniCPM4.1-8B fits the <=32B rule; hardware is the real gate.</span></div>
+  <div class="budget-card"><b>HF CPU basic</b><span>2 vCPU, 16GB RAM, 50GB disk: great for the product demo, not for live MiniCPM inference.</span></div>
   <div class="budget-card"><b>Default target</b><span>OpenBMB MiniCPM stays the submission-aligned model path when hardware can run it.</span></div>
-  <div class="budget-card"><b>Gemma 27B</b><span>Comparison only: needs accepted license access plus upgraded GPU-class hardware.</span></div>
 </section>
 """,
             container=False,

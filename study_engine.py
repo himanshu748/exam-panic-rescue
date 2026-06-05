@@ -187,21 +187,6 @@ def chat_messages(data: StudyInput, topics: list[str]) -> list[dict[str, str]]:
 
 
 @lru_cache(maxsize=1)
-def _image_text_model():
-    import torch
-    from transformers import AutoModelForImageTextToText, AutoProcessor
-
-    processor = AutoProcessor.from_pretrained(DEFAULT_MODEL_ID, trust_remote_code=True)
-    model = AutoModelForImageTextToText.from_pretrained(
-        DEFAULT_MODEL_ID,
-        torch_dtype="auto" if hasattr(torch, "float16") else None,
-        device_map="auto",
-        trust_remote_code=True,
-    )
-    return processor, model
-
-
-@lru_cache(maxsize=1)
 def _llama_cpp_model():
     from llama_cpp import Llama
 
@@ -234,38 +219,6 @@ def _generator():
         trust_remote_code=True,
         device=-1,
     )
-
-
-def image_text_rescue(data: StudyInput, topics: list[str]) -> tuple[str | None, str]:
-    try:
-        processor, model = _image_text_model()
-        template_kwargs = {
-            "conversation": chat_messages(data, topics),
-            "tokenize": True,
-            "return_dict": True,
-            "return_tensors": "pt",
-            "add_generation_prompt": True,
-        }
-        try:
-            inputs = processor.apply_chat_template(**template_kwargs, enable_thinking=False)
-        except TypeError:
-            inputs = processor.apply_chat_template(**template_kwargs)
-        device = getattr(model, "device", None)
-        if device is not None:
-            inputs = inputs.to(device)
-        input_len = inputs["input_ids"].shape[-1]
-        outputs = model.generate(**inputs, max_new_tokens=260, do_sample=False)
-        response = processor.decode(outputs[0][input_len:], skip_special_tokens=True)
-        if hasattr(processor, "parse_response"):
-            parsed = processor.parse_response(response)
-            response = parsed if isinstance(parsed, str) else str(parsed)
-    except Exception as exc:
-        return None, f"Using fallback study engine because {DEFAULT_MODEL_ID} was unavailable: {exc}"
-
-    generated = compact(response)
-    if not generated:
-        return None, f"{DEFAULT_MODEL_ID} returned an empty plan; fallback used."
-    return generated, f"Generated with {DEFAULT_MODEL_ID}."
 
 
 def generated_text_from_pipeline_result(result) -> str:
@@ -487,9 +440,6 @@ def model_rescue(data: StudyInput, topics: list[str]) -> tuple[str | None, str]:
                 return None, "llama.cpp returned an empty plan; fallback used."
             source = LLAMA_CPP_MODEL_PATH or f"{LLAMA_CPP_REPO_ID}:{LLAMA_CPP_FILENAME}"
             return generated, f"Generated locally with llama-cpp-python model {source}."
-
-    if DEFAULT_MODEL_ID.lower().startswith(("google/gemma-3", "google/gemma-4")):
-        return image_text_rescue(data, topics)
 
     try:
         result = _generator()(

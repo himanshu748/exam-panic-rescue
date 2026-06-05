@@ -54,7 +54,6 @@ Do not commit `.idea/` unless the team explicitly decides to version IDE configu
 ## Optional Sponsor Hooks
 
 - OpenBMB default: `MODEL_ID=openbmb/MiniCPM4.1-8B`
-- Gemma comparison: `USE_LOCAL_MODEL=1 MODEL_ID=google/gemma-3-27b-it`
 - Cohere review: `USE_COHERE_REVIEW=1 COHERE_API_KEY=...`
 - llama.cpp runtime: `USE_LLAMA_CPP=1 LLAMA_CPP_MODEL_PATH=/path/to/model.gguf`
 

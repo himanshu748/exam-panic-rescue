@@ -67,6 +67,7 @@ The app stays intentionally narrow: one stressed student, one exam, one time box
 12. Added a model-budget strip and CPU-only Space fallback guard so the demo distinguishes the `<=32B` rule ceiling from practical HF hardware.
 13. Replaced the default Gradio Examples table with compact panic-case buttons after visual QA found the table overflowed and distracted from the product.
 14. Added mobile code wrapping after visual QA found the copyable field-note block could overflow on a 390px viewport.
+15. Removed visible Gemma/comparison-model copy and focused the public app/video story on OpenBMB MiniCPM, with stronger typography and contrast for screenshot/video readability.
 
 ## Current Evidence
 
@@ -84,6 +85,7 @@ The app stays intentionally narrow: one stressed student, one exam, one time box
 - CPU-only Hugging Face Space runtime now defaults to deterministic fallback unless `USE_LOCAL_MODEL=1` is explicitly set after hardware is upgraded or a small GGUF path is configured.
 - Public commit `bde9681` published the latest UI and hardware-honesty pass to GitHub and the Hugging Face Space.
 - Latest local visual QA covered desktop `1280px` and mobile `390px` layouts.
+- Local HyperFrames demo draft rendered at `/private/tmp/exam-panic-rescue-hyperframes-demo.mp4`; MP4 metadata is `68.0s`, `1920x1080`, H.264, `30fps`, about `18.2MB`. The public demo link is still not final submission evidence until uploaded and approved.
 
 ## Open Work Before Final Submission
 

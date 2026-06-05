@@ -23,7 +23,7 @@ Public build notes and demo prep are drafted in [docs/codex-build-trace.md](docs
 
 Public GitHub evidence repo: https://github.com/himanshu748/exam-panic-rescue
 
-Hardware note: the hackathon rule allows models up to `<=32B`, but the live Gradio Space hardware still determines what is practical. The public demo stays Space-safe and uses an honest fallback if model hardware is unavailable; larger, Gemma, or `llama.cpp` routes are documented only when separately smoke-tested.
+Hardware note: the hackathon rule allows models up to `<=32B`, but the live Gradio Space hardware still determines what is practical. The public demo stays Space-safe and uses an honest fallback if MiniCPM hardware is unavailable; local GGUF routes are documented only when separately smoke-tested.
 
 ## Hackathon Fit
 
@@ -57,14 +57,6 @@ USE_LOCAL_MODEL=0 python app.py
 ```
 
 Set `USE_LOCAL_MODEL=1` to try the OpenBMB/MiniCPM model path after the hardware can handle it. On a Hugging Face CPU-only Space, the app defaults to the deterministic fallback unless that flag is explicitly set.
-
-Optional Gemma override for local comparison:
-
-```bash
-USE_LOCAL_MODEL=1 MODEL_ID=google/gemma-3-27b-it python app.py
-```
-
-Gemma model files are gated behind Google's license acceptance on Hugging Face, and the 27B route is not a free CPU Space target. Treat it as a comparison path for upgraded GPU-class hardware, not the default submission path.
 
 Optional local `llama.cpp` mode:
 
