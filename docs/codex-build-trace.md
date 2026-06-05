@@ -75,11 +75,12 @@ The app stays intentionally narrow: one stressed student, one exam, one time box
 - Space smoke checker verifies the public claim-status and 90-second demo path markers in the served app.
 - Hugging Face CLI auth verified `HIMANSHUKUMARJHA` and `build-small-hackathon`.
 - Public GitHub repo exists with Codex-attributed commits: https://github.com/himanshu748/exam-panic-rescue
+- Public Hugging Face Space is published and live-smoke-tested: https://huggingface.co/spaces/build-small-hackathon/exam-panic-rescue
+- Live Space runtime smoke passed root HTTP `200`, Gradio `/config` HTTP `200`, required public markers, and no obvious private/internal markers.
 
 ## Open Work Before Final Submission
 
-- Staging Space has not been uploaded.
-- MiniCPM live Space smoke is pending.
+- MiniCPM generation on the live Space still needs a manual demo run; the Space smoke currently verifies runtime/config/UI markers.
 - llama.cpp path is documented but not live-tested.
 - Cohere review hook is implemented but not live-tested with a key.
 
@@ -88,6 +89,6 @@ The app stays intentionally narrow: one stressed student, one exam, one time box
 Keep this trace public-safe and add final public links when they exist:
 
 - Public GitHub repo: https://github.com/himanshu748/exam-panic-rescue
-- Hugging Face Space.
+- Hugging Face Space: https://huggingface.co/spaces/build-small-hackathon/exam-panic-rescue
 - Demo video.
 - Final field notes.

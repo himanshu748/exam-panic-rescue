@@ -17,7 +17,7 @@ The public UI includes a small claim-status panel so reviewers can see which cla
 
 ## Build Status
 
-This is a staging-ready Build Small project in progress. The app is ready for Space smoke testing; final hackathon submission assets still need the public GitHub link, demo video, social post, and verified runtime claims.
+This is a staging-ready Build Small project in progress. The public Space is live and smoke-tested at https://huggingface.co/spaces/build-small-hackathon/exam-panic-rescue. Final hackathon submission assets still need the demo video, social post, and verified optional runtime claims.
 
 Public build notes and demo prep are drafted in [docs/codex-build-trace.md](docs/codex-build-trace.md) and [docs/demo-script.md](docs/demo-script.md).
 
