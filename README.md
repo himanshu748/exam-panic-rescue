@@ -21,12 +21,14 @@ This is a staging-ready Build Small project in progress. The app is ready for Sp
 
 Public build notes and demo prep are drafted in [docs/codex-build-trace.md](docs/codex-build-trace.md) and [docs/demo-script.md](docs/demo-script.md).
 
+Public GitHub evidence repo: https://github.com/himanshu748/exam-panic-rescue
+
 ## Hackathon Fit
 
 - Track: Backyard AI.
 - Build surface: Gradio `Blocks` app hosted as a Hugging Face Space.
 - Model rule: the default model target is `openbmb/MiniCPM4.1-8B`, under the `<=32B` limit.
-- OpenAI Codex track: built with Codex; public GitHub repo link should be added here before final submission.
+- OpenAI Codex track: built with Codex; public GitHub repo is linked from this Space README.
 - OpenBMB angle: the default local model path targets `openbmb/MiniCPM4.1-8B`.
 - NVIDIA/local angle: no cloud API dependency; the app can run locally or on Space hardware, with an optional `llama.cpp` path when a GGUF model is available.
 - Cohere angle: optional `USE_COHERE_REVIEW=1` quality-review hook, disabled by default so the main demo stays local-first.
@@ -37,11 +39,11 @@ See [docs/sponsor-coverage.md](docs/sponsor-coverage.md) for the current sponsor
 
 ## Codex Track Checklist
 
-- Public GitHub repo with Codex-attributed commits: pending public push.
-- Space README links to that repo: pending public URL.
+- Public GitHub repo with Codex-attributed commits: https://github.com/himanshu748/exam-panic-rescue
+- Space README links to that repo: ready.
 - Hugging Face Space commit history is useful for staging, but the Codex track still needs the separate public GitHub evidence above.
 - Demo video shows one student panic dump becoming a rescue plan, drill deck, triage clock, panic pattern, proof target, final sheet, demo receipt, and field-note prompt.
-- Before final submission, this README should include the public GitHub URL and the demo/social links should be live.
+- Before final submission, the demo/social links should be live.
 
 ## Local Run
 

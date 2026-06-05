@@ -74,10 +74,10 @@ The app stays intentionally narrow: one stressed student, one exam, one time box
 - Space package audit includes `15` public-safe files and now requires the public build trace, demo script, field notes, development workflow, llama.cpp plan, and sponsor matrix.
 - Space smoke checker verifies the public claim-status and 90-second demo path markers in the served app.
 - Hugging Face CLI auth verified `HIMANSHUKUMARJHA` and `build-small-hackathon`.
+- Public GitHub repo exists with Codex-attributed commits: https://github.com/himanshu748/exam-panic-rescue
 
 ## Open Work Before Final Submission
 
-- Local `.git/HEAD` is corrupted/unreadable, so public Codex commit evidence is not ready.
 - Staging Space has not been uploaded.
 - MiniCPM live Space smoke is pending.
 - llama.cpp path is documented but not live-tested.
@@ -87,7 +87,7 @@ The app stays intentionally narrow: one stressed student, one exam, one time box
 
 Keep this trace public-safe and add final public links when they exist:
 
-- Public GitHub repo.
+- Public GitHub repo: https://github.com/himanshu748/exam-panic-rescue
 - Hugging Face Space.
 - Demo video.
 - Final field notes.
