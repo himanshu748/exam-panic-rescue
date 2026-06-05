@@ -77,11 +77,12 @@ The app stays intentionally narrow: one stressed student, one exam, one time box
 - Public GitHub repo exists with Codex-attributed commits: https://github.com/himanshu748/exam-panic-rescue
 - Public Hugging Face Space is published and live-smoke-tested: https://huggingface.co/spaces/build-small-hackathon/exam-panic-rescue
 - Live Space runtime smoke passed root HTTP `200`, Gradio `/config` HTTP `200`, required public markers, and no obvious private/internal markers.
+- Optional `llama.cpp` CLI app path produced a non-fallback model note with a TinyLlama GGUF override; the OpenBMB MiniCPM GGUF path is still not claimed.
 
 ## Open Work Before Final Submission
 
 - MiniCPM generation on the live Space still needs a manual demo run; the Space smoke currently verifies runtime/config/UI markers.
-- llama.cpp path is documented but not live-tested.
+- llama.cpp path is implemented and documented; TinyLlama GGUF smoke passed, but the OpenBMB MiniCPM GGUF path still needs a non-fallback smoke before any Llama Champion claim.
 - Cohere review hook is implemented but not live-tested with a key.
 
 ## Public Trace Rule

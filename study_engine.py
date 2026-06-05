@@ -288,7 +288,20 @@ def llama_cli_command(prompt: str, max_tokens: int = 260) -> list[str]:
     else:
         command.extend(["-hf", llama_cli_source()])
 
-    command.extend(["-p", prompt, "-n", str(max_tokens), "--temp", "0"])
+    command.extend(
+        [
+            "-p",
+            prompt,
+            "-n",
+            str(max_tokens),
+            "--temp",
+            "0",
+            "--single-turn",
+            "--simple-io",
+            "--no-display-prompt",
+            "--log-disable",
+        ]
+    )
 
     if os.getenv("LLAMA_CPP_N_CTX", "").strip():
         command.extend(["-c", os.getenv("LLAMA_CPP_N_CTX", "").strip()])
@@ -301,8 +314,11 @@ def llama_cli_command(prompt: str, max_tokens: int = 260) -> list[str]:
 
 def generated_text_from_llama_cli_output(output: str, prompt: str = "") -> str:
     text = (output or "").strip()
-    if prompt and text.startswith(prompt):
-        text = text[len(prompt) :].strip()
+    if prompt and prompt in text:
+        text = text.split(prompt, 1)[1].strip()
+    text = re.sub(r"\[\s*Prompt:.*?\]\s*", " ", text, flags=re.S)
+    text = text.replace("Exiting...", " ")
+    text = re.sub(r"^(>\s*)+", "", text).strip()
     return compact(text)
 
 

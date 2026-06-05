@@ -192,6 +192,9 @@ class StudyEngineTest(unittest.TestCase):
         self.assertIn("student panic", command)
         self.assertIn("-n", command)
         self.assertIn("32", command)
+        self.assertIn("--single-turn", command)
+        self.assertIn("--simple-io", command)
+        self.assertIn("--no-display-prompt", command)
 
     def test_extracts_llama_cpp_chat_completion_text(self):
         text = generated_text_from_llama_cpp_result(
@@ -202,7 +205,7 @@ class StudyEngineTest(unittest.TestCase):
 
     def test_strips_prompt_echo_from_llama_cli_output(self):
         text = generated_text_from_llama_cli_output(
-            "student panic\n\n1. Reset.\n2. Drill.",
+            "Loading model...\nmodel : tiny\n> student panic\n\n1. Reset.\n2. Drill.\n\n[ Prompt: 10 t/s | Generation: 20 t/s ]\nExiting...",
             prompt="student panic",
         )
 

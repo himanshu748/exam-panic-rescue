@@ -90,7 +90,7 @@ llama-server -hf openbmb/MiniCPM4.1-8B-GGUF:Q4_K_M
 
 Do not claim Llama Champion until one of these is true:
 
-- `USE_LLAMA_CPP=1 python3 app.py` loads the GGUF path and produces a non-fallback model note.
+- `USE_LLAMA_CPP=1 python3 app.py` loads a GGUF path and produces a non-fallback model note.
 - `USE_LLAMA_CPP=1 LLAMA_CPP_BACKEND=cli python3 app.py` produces a non-fallback model note that says `Generated locally with llama.cpp CLI`.
 - Direct `llama-cli -hf openbmb/MiniCPM4.1-8B-GGUF:Q4_K_M ...` produces a usable response and the demo can explain how the app maps to that runtime.
 - Internal check passes: `python3 scripts/llama_runtime_check.py`.
@@ -107,5 +107,21 @@ Checked on 2026-06-05:
 - `llama-server`: installed at `/opt/homebrew/bin/llama-server`.
 - Python `llama_cpp`: not installed.
 - `python3 scripts/llama_runtime_check.py`: passes `9/9`.
+- App-level TinyLlama GGUF smoke passed with:
 
-Downloading the GGUF model for a non-fallback MiniCPM run is still pending and may take time, disk, and network bandwidth.
+```bash
+USE_LOCAL_MODEL=1 \
+USE_LLAMA_CPP=1 \
+LLAMA_CPP_BACKEND=cli \
+LLAMA_CPP_REPO_ID=TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF \
+LLAMA_CPP_HF_SELECTOR=Q2_K \
+LLAMA_CPP_MAX_TOKENS=80 \
+LLAMA_CPP_TIMEOUT=90 \
+python3 -c "from study_engine import build_rescue_plan; p=build_rescue_plan('Aarav','Physics formulas',90,'Mixed','I panic and forget formulas','work-energy theorem, kinetic energy',2); print(p.model_note)"
+```
+
+Result: `Generated locally with llama.cpp CLI model TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF:Q2_K.`
+
+- The OpenBMB MiniCPM GGUF file is public but about `4.97GB`. A download attempt was aborted because Hugging Face/Xet duplicated partial cache pressure on a disk with limited free space.
+
+Do not claim OpenBMB-through-llama.cpp until the OpenBMB GGUF itself runs. A safer final claim is: optional llama.cpp runtime path is implemented and verified with TinyLlama GGUF; OpenBMB remains the default non-GGUF model target.
