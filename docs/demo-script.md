@@ -28,7 +28,7 @@ Settings:
 - Confidence: `2`
 - Minutes left: `120`
 
-Fast path in the UI: click the built-in `physics numericals` panic case under "Judge-ready panic cases", then run the rescue.
+Fast path in the UI: click the built-in `physics numericals` panic case under "Try another panic case", then run the rescue.
 
 ## Talk Track
 
@@ -40,7 +40,6 @@ This is Exam Panic Rescue. It is for one specific Backyard AI user: a student wh
 
 Paste the panic dump and the actual topics. The app does not pretend to know the whole syllabus; it uses the student's own notes and time box.
 If using the fast path, point out that the built-in case is the same one covered by the readiness smoke test.
-Briefly point to the claim-status cards: claim now, claim after smoke, and do not claim yet.
 
 25-50 seconds:
 
@@ -56,6 +55,8 @@ Show the final sheet. This is the student-facing artifact: the last page before 
 Call out the first-action line, proof-before-stopping line, and the "Do not do" guardrail; those are what keep a panicking student from restarting the spiral.
 Show the demo receipt as the judge-readable before/after: confidence, panic pattern, first move, leak to patch, and proof of work.
 End on the copyable field-note prompt: it is how we capture whether a real student actually used the rescue and what changed.
+
+If asked about sponsor proof, use the collapsed build-proof section after the product demo. Do not lead with it.
 
 ## What To Avoid Saying
 

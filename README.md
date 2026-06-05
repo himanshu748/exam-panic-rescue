@@ -13,7 +13,7 @@ The first target workflow is a student who has an exam soon, feels stuck, and ca
 
 The app includes four built-in panic cases for fast judging: biology definitions, physics numericals, history long answers, and math MCQ traps. These are the same cases used by the local readiness smoke test and published as [data/readiness_cases.jsonl](data/readiness_cases.jsonl). Each run names the likely panic pattern, gives the student one proof target before they stop studying, produces a short demo receipt, and emits a copyable field-note prompt for real-user follow-up.
 
-The public UI includes a small claim-status panel so reviewers can see which claims are ready now, which need a Space/runtime smoke, and which should not be claimed yet.
+The public UI keeps the demo first and puts build-proof/claim status in a small collapsible section so sponsor evidence does not distract from the product.
 
 ## Build Status
 

@@ -46,15 +46,14 @@ CSS = """
   position: relative;
   overflow: hidden;
   display: grid;
-  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
-  gap: 22px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 14px;
   border: 1px solid rgba(19, 32, 34, 0.18);
-  border-radius: 30px;
+  border-radius: 24px;
   background:
-    linear-gradient(135deg, rgba(255, 252, 242, 0.96), rgba(246, 230, 199, 0.78)),
-    repeating-linear-gradient(135deg, transparent 0 18px, rgba(31, 85, 116, 0.05) 18px 20px);
-  box-shadow: 0 24px 70px var(--shadow);
-  padding: clamp(20px, 4vw, 38px);
+    linear-gradient(135deg, rgba(255, 252, 242, 0.98), rgba(246, 230, 199, 0.74));
+  box-shadow: 0 18px 48px rgba(37, 29, 16, 0.10);
+  padding: clamp(18px, 3vw, 30px);
 }
 
 .hero:after {
@@ -85,12 +84,12 @@ CSS = """
 
 .hero h1 {
   position: relative;
-  margin: 16px 0 10px;
+  margin: 14px 0 8px;
   font-family: ui-serif, Georgia, "Times New Roman", serif;
-  font-size: clamp(38px, 7vw, 76px);
-  line-height: 0.92;
-  letter-spacing: -0.055em;
-  max-width: 780px;
+  font-size: clamp(34px, 5vw, 58px);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+  max-width: 860px;
 }
 
 .hero p {
@@ -105,7 +104,7 @@ CSS = """
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-top: 18px;
+  margin-top: 14px;
 }
 
 .hero-steps span {
@@ -116,37 +115,6 @@ CSS = """
   font-size: 13px;
   font-weight: 700;
   padding: 8px 11px;
-}
-
-.hero-proof {
-  position: relative;
-  z-index: 1;
-  align-self: stretch;
-  display: grid;
-  gap: 12px;
-}
-
-.proof-card {
-  border: 1px solid rgba(19, 32, 34, 0.15);
-  border-radius: 22px;
-  background: rgba(19, 32, 34, 0.92);
-  color: #fffaf0;
-  padding: 18px;
-}
-
-.proof-card strong {
-  display: block;
-  font-family: ui-serif, Georgia, "Times New Roman", serif;
-  font-size: 30px;
-  line-height: 1;
-}
-
-.proof-card span {
-  display: block;
-  margin-top: 7px;
-  color: rgba(255, 250, 240, 0.76);
-  font-size: 13px;
-  line-height: 1.4;
 }
 
 #main-workspace {
@@ -308,12 +276,12 @@ CSS = """
 }
 
 .demo-cases {
-  margin-top: 18px;
-  border: 1px solid rgba(19, 32, 34, 0.16);
-  border-radius: 24px;
-  background: rgba(255, 252, 242, 0.80);
-  box-shadow: 0 14px 40px rgba(37, 29, 16, 0.08);
-  padding: clamp(14px, 2vw, 20px);
+  margin-top: 14px;
+  border: 1px dashed rgba(19, 32, 34, 0.20);
+  border-radius: 18px;
+  background: rgba(255, 252, 242, 0.64);
+  box-shadow: none;
+  padding: 12px;
 }
 
 .demo-cases h2 {
@@ -333,15 +301,15 @@ CSS = """
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
-  margin-top: 18px;
+  margin-top: 14px;
 }
 
 .claim-card {
   border: 1px solid rgba(19, 32, 34, 0.16);
-  border-radius: 20px;
-  background: rgba(255, 252, 242, 0.82);
-  padding: 14px 16px;
-  box-shadow: 0 14px 38px rgba(37, 29, 16, 0.07);
+  border-radius: 16px;
+  background: rgba(255, 252, 242, 0.70);
+  padding: 12px;
+  box-shadow: none;
 }
 
 .claim-card b {
@@ -360,78 +328,24 @@ CSS = """
   line-height: 1.45;
 }
 
-.demo-rail {
-  display: grid;
-  grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1.2fr);
-  gap: 14px;
+.proof-details {
   margin-top: 18px;
-  border: 1px solid rgba(19, 32, 34, 0.16);
-  border-radius: 24px;
-  background:
-    linear-gradient(135deg, rgba(19, 32, 34, 0.92), rgba(6, 72, 63, 0.88)),
-    radial-gradient(circle at 88% 14%, rgba(189, 143, 34, 0.18), transparent 30%);
-  color: #fffaf0;
-  box-shadow: 0 18px 52px rgba(37, 29, 16, 0.14);
-  padding: clamp(15px, 2vw, 20px);
+  border: 1px solid rgba(19, 32, 34, 0.14);
+  border-radius: 20px;
+  background: rgba(255, 252, 242, 0.68);
+  padding: 12px 14px;
 }
 
-.demo-rail b {
-  display: block;
-  color: #f4d283;
-  font-size: 12px;
-  letter-spacing: 0.11em;
-  text-transform: uppercase;
+.proof-details summary {
+  cursor: pointer;
+  color: var(--green-dark);
+  font-weight: 800;
 }
 
-.demo-rail strong {
-  display: block;
-  margin-top: 8px;
-  font-family: ui-serif, Georgia, "Times New Roman", serif;
-  font-size: clamp(24px, 3vw, 34px);
-  line-height: 1.04;
-  letter-spacing: -0.035em;
-}
-
-.demo-rail p,
-.demo-rail li {
-  color: rgba(255, 250, 240, 0.82);
+.proof-details p {
+  color: var(--muted);
   font-size: 13px;
   line-height: 1.45;
-}
-
-.demo-rail p {
-  margin: 10px 0 0;
-}
-
-.demo-rail ol {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  counter-reset: demo-step;
-}
-
-.demo-rail li {
-  counter-increment: demo-step;
-  border: 1px solid rgba(255, 250, 240, 0.16);
-  border-radius: 18px;
-  background: rgba(255, 250, 240, 0.08);
-  padding: 12px;
-}
-
-.demo-rail li:before {
-  content: counter(demo-step);
-  display: inline-grid;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  margin-bottom: 9px;
-  border-radius: 999px;
-  background: #f4d283;
-  color: var(--green-dark);
-  font-weight: 900;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -490,14 +404,6 @@ CSS = """
     grid-template-columns: 1fr;
   }
 
-  .demo-rail {
-    grid-template-columns: 1fr;
-  }
-
-  .demo-rail ol {
-    grid-template-columns: 1fr;
-  }
-
   .primary-action,
   .secondary-action {
     flex: 1 1 100%;
@@ -509,9 +415,9 @@ CSS = """
 HERO_HTML = """
 <section class="hero">
   <div>
-    <div class="eyebrow">Backyard AI · OpenBMB MiniCPM · local-first rescue</div>
-    <h1>Stop the spiral. Build the next 90 minutes.</h1>
-    <p>Exam Panic Rescue turns a messy panic dump into one calm plan, five drills, a triage clock, a final sheet, a demo receipt, and a copyable field note a student can use before and after the exam crunch.</p>
+    <div class="eyebrow">Exam Panic Rescue</div>
+    <h1>Paste the panic. Get the rescue packet.</h1>
+    <p>A tiny study coach for the final crunch: it turns one messy panic dump into a calm plan, five drills, a triage clock, and the last sheet to read before walking into the exam.</p>
     <div class="hero-steps" aria-label="Demo flow">
       <span>1. Dump the panic</span>
       <span>2. Rank the leaks</span>
@@ -519,46 +425,29 @@ HERO_HTML = """
       <span>4. Walk in with a final sheet</span>
     </div>
   </div>
-  <div class="hero-proof" aria-label="Hackathon proof points">
-    <div class="proof-card"><strong>8B</strong><span>Default target: OpenBMB MiniCPM4.1, under the 32B rule and aligned with the special prize.</span></div>
-    <div class="proof-card"><strong>28/28</strong><span>Local readiness smoke across biology, physics, history, and math panic cases.</span></div>
-  </div>
 </section>
 """
 
 
 CLAIM_STATUS_HTML = """
-<section class="claim-strip" aria-label="Public claim status">
-  <div class="claim-card">
-    <b>Claim now</b>
-    <span>Backyard AI workflow, OpenBMB MiniCPM default target, Off-Brand Gradio UI, and local-first fallback.</span>
-  </div>
-  <div class="claim-card">
-    <b>Claim after smoke</b>
-    <span>Hugging Face Space runtime, Codex public repo evidence, and any MiniCPM-on-Space runtime claim.</span>
-  </div>
-  <div class="claim-card">
-    <b>Do not claim yet</b>
-    <span>Llama Champion, Cohere live review, Well-Tuned, or final submission until those checks are proven.</span>
-  </div>
-</section>
-"""
-
-
-DEMO_RAIL_HTML = """
-<section class="demo-rail" aria-label="90-second demo path">
-  <div>
-    <b>90-second demo path</b>
-    <strong>Make the judge see the before/after immediately.</strong>
-    <p>Use the built-in physics case first, then show the proof target, final sheet, and copyable field note.</p>
-  </div>
-  <ol>
-    <li>Load a panic case.</li>
-    <li>Click Build rescue plan.</li>
-    <li>Point to the proof target and final sheet.</li>
-    <li>Copy the field note for follow-up evidence.</li>
-  </ol>
-</section>
+<details class="proof-details">
+  <summary>Build proof and claim status</summary>
+  <p><strong>90-second demo path:</strong> load a panic case, build the rescue plan, show the proof target/final sheet, then copy the field note.</p>
+  <section class="claim-strip" aria-label="Public claim status">
+    <div class="claim-card">
+      <b>Claim now</b>
+      <span>Backyard AI workflow, OpenBMB MiniCPM default target, Off-Brand Gradio UI, and local-first fallback.</span>
+    </div>
+    <div class="claim-card">
+      <b>Claim after smoke</b>
+      <span>MiniCPM generation on Space, Llama Champion, Cohere live review, and final submission.</span>
+    </div>
+    <div class="claim-card">
+      <b>Do not claim yet</b>
+      <span>Well-Tuned or any untested runtime prize until real evidence exists.</span>
+    </div>
+  </section>
+</details>
 """
 
 
@@ -621,16 +510,14 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
     gr.HTML(f"<style>{CSS}</style>", container=False)
     with gr.Column(elem_classes=["app-shell"]):
         gr.HTML(HERO_HTML, container=False)
-        gr.HTML(CLAIM_STATUS_HTML, container=False)
-        gr.HTML(DEMO_RAIL_HTML, container=False)
 
         with gr.Row(equal_height=False, elem_id="main-workspace"):
             with gr.Column(scale=5, min_width=320, elem_classes=["input-card"]):
                 gr.HTML(
                     """
 <div class="section-title">
-  <h2>What is happening?</h2>
-  <p>Use rough student language. The app is better when the panic is specific.</p>
+  <h2>Run the demo</h2>
+  <p>The physics case is loaded. Change it or pick another panic case below, then build the rescue packet.</p>
 </div>
 """,
                     container=False,
@@ -685,13 +572,27 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                 with gr.Row():
                     run = gr.Button("Build rescue plan", variant="primary", elem_classes=["primary-action"])
                     example = gr.Button("Load example", elem_classes=["secondary-action"])
+                inputs = [student_name, subject, time_left_minutes, exam_format, panic_note, known_material, confidence]
+                with gr.Column(elem_classes=["demo-cases"]):
+                    gr.HTML(
+                        """
+<h2>Try another panic case</h2>
+<p>One click loads a different subject, time window, and exam format.</p>
+""",
+                        container=False,
+                    )
+                    gr.Examples(
+                        examples=DEMO_EXAMPLES,
+                        inputs=inputs,
+                        label="Load a panic case",
+                    )
 
             with gr.Column(scale=7, min_width=340, elem_classes=["output-stack"]):
                 gr.HTML(
                     """
 <div class="section-title">
   <h2>The rescue packet</h2>
-  <p>Designed for a demo under 90 seconds: plan, drills, clock, final sheet, demo receipt, and field note.</p>
+  <p>This is the product: the plan, drills, clock, final sheet, receipt, and field note in one screen.</p>
 </div>
 """,
                     container=False,
@@ -704,7 +605,6 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                 field_note_output = gr.Markdown(elem_classes=["panel"])
                 model_note = gr.Markdown(elem_id="model-note")
 
-        inputs = [student_name, subject, time_left_minutes, exam_format, panic_note, known_material, confidence]
         outputs = [
             rescue_output,
             drill_output,
@@ -714,19 +614,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
             field_note_output,
             model_note,
         ]
-        with gr.Column(elem_classes=["demo-cases"]):
-            gr.HTML(
-                """
-<h2>Judge-ready panic cases</h2>
-<p>Use these to show that the workflow handles different subjects, clocks, and exam formats without prompt gymnastics.</p>
-""",
-                container=False,
-            )
-            gr.Examples(
-                examples=DEMO_EXAMPLES,
-                inputs=inputs,
-                label="Load a panic case",
-            )
+        gr.HTML(CLAIM_STATUS_HTML, container=False)
     run.click(generate, inputs=inputs, outputs=outputs)
     panic_note.submit(generate, inputs=inputs, outputs=outputs)
     example.click(load_example, outputs=inputs).then(generate, inputs=inputs, outputs=outputs)

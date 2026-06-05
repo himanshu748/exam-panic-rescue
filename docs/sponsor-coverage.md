@@ -4,7 +4,7 @@ Updated: 2026-06-05
 
 This document exists so the project does not drift into bounty soup. Each sponsor angle must either improve the student demo, satisfy a real rule, or stay explicitly out of scope.
 
-The app also shows a compact public claim-status panel with the same philosophy: claim now, claim after smoke, or do not claim yet.
+The app keeps the product demo first and puts claim-status proof in a compact collapsible section with the same philosophy: claim now, claim after smoke, or do not claim yet.
 
 ## Current Matrix
 
