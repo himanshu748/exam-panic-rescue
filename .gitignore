@@ -1,0 +1,7 @@
+__pycache__/
+*.py[cod]
+.playwright-mcp/
+.git-corrupt-*/
+.DS_Store
+*.log
+exam-panic-rescue-*.png
