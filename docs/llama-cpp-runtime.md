@@ -95,14 +95,17 @@ Do not claim Llama Champion until one of these is true:
 - Direct `llama-cli -hf openbmb/MiniCPM4.1-8B-GGUF:Q4_K_M ...` produces a usable response and the demo can explain how the app maps to that runtime.
 - Internal check passes: `python3 scripts/llama_runtime_check.py`.
 
+The internal check proves runtime/config readiness. It does not replace the non-fallback MiniCPM GGUF generation smoke required for a final Llama Champion claim.
+
 Until then, this remains a ready optional path, not a submitted claim.
 
 ## Current Local Status
 
 Checked on 2026-06-05:
 
-- `llama-cli`: not installed.
-- `llama-server`: not installed.
+- `llama-cli`: installed at `/opt/homebrew/bin/llama-cli`, version `9430`.
+- `llama-server`: installed at `/opt/homebrew/bin/llama-server`.
 - Python `llama_cpp`: not installed.
+- `python3 scripts/llama_runtime_check.py`: passes `9/9`.
 
-Installing or downloading the GGUF model should be an explicit decision because it may take time, disk, and network bandwidth.
+Downloading the GGUF model for a non-fallback MiniCPM run is still pending and may take time, disk, and network bandwidth.

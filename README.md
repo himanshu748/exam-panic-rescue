@@ -105,7 +105,7 @@ Submission preflight:
 python scripts/preflight_check.py
 ```
 
-The full preflight includes external evidence checks, so it will continue to report missing final public links until GitHub, Space, demo, and social assets exist.
+The full preflight includes external evidence checks, so it will continue to report missing final public links until the demo video and social assets exist.
 
 See [docs/field-notes.md](docs/field-notes.md) for the public build report draft.
 See [docs/development-workflow.md](docs/development-workflow.md) for local and JetBrains/PyCharm run workflows.

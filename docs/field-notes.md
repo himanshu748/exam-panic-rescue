@@ -20,18 +20,18 @@ The first target workflow is a student who has a test soon and can only describe
 ## Bonus Quests
 
 - Off-Brand: custom Gradio Blocks layout and CSS.
-- Off-Brand evidence: the app includes built-in judge cases, a 90-second demo path rail, a demo receipt, and a final-sheet artifact with first-action, proof-before-stopping, and "Do not do" guardrails.
+- Off-Brand evidence: the app includes built-in panic cases, a demo receipt, collapsed claim proof, and a final-sheet artifact with first-action, proof-before-stopping, and "Do not do" guardrails.
 - Sharing is Caring: publish the Codex trace or build log before final submission.
 - Field Notes: this document becomes the concise public report, backed by the app's copyable field-note prompt.
 - Well-Tuned runway: `data/readiness_cases.jsonl` is a small public eval seed, but not a fine-tune claim.
 - Off the Grid: the app attempts local model inference and has no cloud API dependency.
-- Llama Champion: possible later through `USE_LLAMA_CPP=1` if the GGUF path is reliable enough for the Space.
+- Llama Champion: possible later through `USE_LLAMA_CPP=1`; local `llama-cli` is installed, but the OpenBMB GGUF path still needs a non-fallback generation smoke before claiming.
 
 ## Validation Plan
 
 - Local unit test: `python -m unittest discover -s tests`
 - Demo case smoke: `python scripts/readiness_check.py`
-- The same biology, physics, history, and math smoke cases are exposed in the app under "Judge-ready panic cases".
+- The same biology, physics, history, and math smoke cases are exposed in the app under "Try another panic case".
 - The same cases are published as JSONL at `data/readiness_cases.jsonl` so reviewers can inspect the tiny eval set.
 - Local app smoke: `USE_LOCAL_MODEL=0 python app.py`
 - Space smoke: run once with the default model path and confirm the model note reports `openbmb/MiniCPM4.1-8B`.
