@@ -440,7 +440,7 @@ CLAIM_STATUS_HTML = """
     </div>
     <div class="claim-card">
       <b>Claim after smoke</b>
-      <span>MiniCPM generation on Space, Llama Champion, Cohere live review, and final submission.</span>
+      <span>MiniCPM generation on Space, Llama Champion, and final submission.</span>
     </div>
     <div class="claim-card">
       <b>Do not claim yet</b>

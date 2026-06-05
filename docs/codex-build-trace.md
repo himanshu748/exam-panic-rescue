@@ -46,7 +46,7 @@ The app stays intentionally narrow: one stressed student, one exam, one time box
 - OpenAI Codex: Codex-assisted app, tests, docs, and iteration trace; final submission needs public GitHub evidence.
 - OpenBMB: default model target is `openbmb/MiniCPM4.1-8B`.
 - NVIDIA: local-first/no-cloud default with small-model/GPU-friendly framing.
-- Cohere: optional quality-review hook only; disabled by default.
+- Cohere: supporting sponsor only for now; optional quality-review hook exists but is disabled by default and not a final claim target unless criteria appear.
 - JetBrains: reproducible PyCharm/JetBrains workflow docs.
 - Black Forest Labs: visual/delight support through the final-sheet artifact.
 - Modal: intentionally excluded by user preference.
@@ -83,7 +83,7 @@ The app stays intentionally narrow: one stressed student, one exam, one time box
 
 - MiniCPM generation on the live Space still needs a manual demo run; the Space smoke currently verifies runtime/config/UI markers.
 - llama.cpp path is implemented and documented; TinyLlama GGUF smoke passed, but the OpenBMB MiniCPM GGUF path still needs a non-fallback smoke before any Llama Champion claim.
-- Cohere review hook is implemented but not live-tested with a key.
+- Cohere review hook is implemented but intentionally not targeted unless official Cohere-specific criteria appear.
 
 ## Public Trace Rule
 

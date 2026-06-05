@@ -31,7 +31,7 @@ Public GitHub evidence repo: https://github.com/himanshu748/exam-panic-rescue
 - OpenAI Codex track: built with Codex; public GitHub repo is linked from this Space README.
 - OpenBMB angle: the default local model path targets `openbmb/MiniCPM4.1-8B`.
 - NVIDIA/local angle: no cloud API dependency; the app can run locally or on Space hardware, with an optional `llama.cpp` path when a GGUF model is available.
-- Cohere angle: optional `USE_COHERE_REVIEW=1` quality-review hook, disabled by default so the main demo stays local-first.
+- Cohere note: supporting sponsor only for now; an optional `USE_COHERE_REVIEW=1` hook exists, but the main demo stays local-first and does not claim Cohere usage.
 - JetBrains angle: documented PyCharm/JetBrains run workflow for app, tests, and readiness checks.
 - Off-Brand angle: custom Gradio layout, built-in judge cases, and a printable final-sheet artifact with a first action and a "do not do" guardrail.
 
@@ -88,7 +88,7 @@ Optional Cohere quality review:
 USE_COHERE_REVIEW=1 COHERE_API_KEY=... python app.py
 ```
 
-This calls Cohere `v2/chat` with `command-a-plus-05-2026` and parses the v2 `message.content[].text` response shape. It stays disabled for the default local-first demo.
+This calls Cohere `v2/chat` with `command-a-plus-05-2026` and parses the v2 `message.content[].text` response shape. It stays disabled for the default local-first demo and should not be treated as a submission claim unless official Cohere-specific criteria appear.
 
 ## Validation
 
