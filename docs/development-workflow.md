@@ -37,6 +37,8 @@ Use the default OpenBMB/MiniCPM path when hardware/network can handle the model:
 USE_LOCAL_MODEL=1 python3 app.py
 ```
 
+On Hugging Face CPU-only hardware, the app defaults to the deterministic fallback unless `USE_LOCAL_MODEL=1` is explicitly set. This prevents the live demo from timing out while still preserving the OpenBMB path for upgraded hardware or local smoke tests.
+
 ## JetBrains/PyCharm Setup
 
 Create three Python run configurations:
@@ -52,7 +54,7 @@ Do not commit `.idea/` unless the team explicitly decides to version IDE configu
 ## Optional Sponsor Hooks
 
 - OpenBMB default: `MODEL_ID=openbmb/MiniCPM4.1-8B`
-- Gemma comparison: `MODEL_ID=google/gemma-4-12B-it`
+- Gemma comparison: `USE_LOCAL_MODEL=1 MODEL_ID=google/gemma-3-27b-it`
 - Cohere review: `USE_COHERE_REVIEW=1 COHERE_API_KEY=...`
 - llama.cpp runtime: `USE_LLAMA_CPP=1 LLAMA_CPP_MODEL_PATH=/path/to/model.gguf`
 

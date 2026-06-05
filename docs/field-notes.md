@@ -15,7 +15,8 @@ The first target workflow is a student who has a test soon and can only describe
 - Model constraint: default model target is `openbmb/MiniCPM4.1-8B`, well under the `<=32B` rule.
 - Sponsor target: OpenAI Codex track through Codex-built repo history and README linkage.
 - OpenBMB fit: the default small-model path uses `openbmb/MiniCPM4.1-8B` for plan generation when available.
-- NVIDIA/local fit: the app has no cloud API dependency and can run with local or Space hardware, with optional `llama.cpp` support. A small TinyLlama GGUF smoke passed through the CLI path; OpenBMB MiniCPM GGUF still needs a non-fallback smoke before claiming Llama Champion.
+- NVIDIA/local fit: the app has no cloud API dependency and can run with local or Space hardware, with optional `llama.cpp` support. TinyLlama and official OpenBMB MiniCPM4 0.5B GGUF smokes passed through the CLI path; final Llama Champion claim still depends on showing that route in final demo/materials.
+- Runtime honesty: CPU-only Hugging Face Spaces use the deterministic fallback by default; OpenBMB, Gemma, or GGUF routes should be shown only after a matching model-backed smoke.
 
 ## Bonus Quests
 
@@ -25,7 +26,7 @@ The first target workflow is a student who has a test soon and can only describe
 - Field Notes: this document becomes the concise public report, backed by the app's copyable field-note prompt.
 - Well-Tuned runway: `data/readiness_cases.jsonl` is a small public eval seed, but not a fine-tune claim.
 - Off the Grid: the app attempts local model inference and has no cloud API dependency.
-- Llama Champion: possible later through `USE_LLAMA_CPP=1`; local `llama-cli` is installed and the app-level TinyLlama GGUF smoke passed, but the OpenBMB GGUF path still needs a non-fallback generation smoke before claiming.
+- Llama Champion: possible later through `USE_LLAMA_CPP=1`; local `llama-cli` is installed and the app-level OpenBMB MiniCPM4 0.5B GGUF smoke passed. Claim only if final demo/materials explicitly use or show that route.
 
 ## Validation Plan
 
@@ -34,7 +35,7 @@ The first target workflow is a student who has a test soon and can only describe
 - The same biology, physics, history, and math smoke cases are exposed in the app under "Try another panic case".
 - The same cases are published as JSONL at `data/readiness_cases.jsonl` so reviewers can inspect the tiny eval set.
 - Local app smoke: `USE_LOCAL_MODEL=0 python app.py`
-- Space smoke: run once with the default model path and confirm the model note reports `openbmb/MiniCPM4.1-8B`.
+- Space smoke: run once and confirm the model note is truthful: either it reports `openbmb/MiniCPM4.1-8B` on capable hardware or a CPU-only fallback note on free/basic hardware.
 
 ## Submission Checklist
 

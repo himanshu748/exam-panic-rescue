@@ -64,6 +64,7 @@ The app stays intentionally narrow: one stressed student, one exam, one time box
 9. Tightened the public sponsor matrix into claim levels so final materials can distinguish "ready now" from "needs live smoke."
 10. Added a public claim-status panel in the Gradio UI so judges can see claim discipline without reading private docs.
 11. Added a 90-second demo path rail and per-run demo receipt so the before/after is visible without narration.
+12. Added a model-budget strip and CPU-only Space fallback guard so the demo distinguishes the `<=32B` rule ceiling from practical HF hardware.
 
 ## Current Evidence
 
@@ -77,12 +78,13 @@ The app stays intentionally narrow: one stressed student, one exam, one time box
 - Public GitHub repo exists with Codex-attributed commits: https://github.com/himanshu748/exam-panic-rescue
 - Public Hugging Face Space is published and live-smoke-tested: https://huggingface.co/spaces/build-small-hackathon/exam-panic-rescue
 - Live Space runtime smoke passed root HTTP `200`, Gradio `/config` HTTP `200`, required public markers, and no obvious private/internal markers.
-- Optional `llama.cpp` CLI app path produced a non-fallback model note with a TinyLlama GGUF override; the OpenBMB MiniCPM GGUF path is still not claimed.
+- Optional `llama.cpp` CLI app path produced non-fallback model notes with TinyLlama GGUF and an official OpenBMB MiniCPM4 0.5B GGUF local-file route.
+- CPU-only Hugging Face Space runtime now defaults to deterministic fallback unless `USE_LOCAL_MODEL=1` is explicitly set after hardware is upgraded or a small GGUF path is configured.
 
 ## Open Work Before Final Submission
 
 - MiniCPM generation on the live Space still needs a manual demo run; the Space smoke currently verifies runtime/config/UI markers.
-- llama.cpp path is implemented and documented; TinyLlama GGUF smoke passed, but the OpenBMB MiniCPM GGUF path still needs a non-fallback smoke before any Llama Champion claim.
+- llama.cpp path is implemented and documented; TinyLlama GGUF and official OpenBMB MiniCPM4 0.5B GGUF local smokes passed. Final Llama Champion claim still needs the demo/materials to explicitly show that route.
 - Cohere review hook is implemented but intentionally not targeted unless official Cohere-specific criteria appear.
 
 ## Public Trace Rule

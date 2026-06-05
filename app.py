@@ -13,6 +13,7 @@ CSS = """
   --muted: #536463;
   --paper: #f4f1e8;
   --card: rgba(255, 252, 242, 0.92);
+  --card-solid: #fffaf0;
   --line: #c9c2af;
   --green: #006c5b;
   --green-dark: #06483f;
@@ -34,6 +35,14 @@ CSS = """
   color: var(--ink);
   font-family: "Avenir Next", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
   min-height: 100vh;
+}
+
+.gradio-container button:focus-visible,
+.gradio-container textarea:focus-visible,
+.gradio-container input:focus-visible,
+.gradio-container select:focus-visible {
+  outline: 3px solid rgba(0, 108, 91, 0.34) !important;
+  outline-offset: 2px !important;
 }
 
 .app-shell {
@@ -117,6 +126,106 @@ CSS = """
   padding: 8px 11px;
 }
 
+.hero-proof {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+  max-width: 880px;
+}
+
+.hero-proof div {
+  border: 1px solid rgba(19, 32, 34, 0.13);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.58);
+  padding: 12px;
+}
+
+.hero-proof b {
+  display: block;
+  color: var(--coral);
+  font-family: ui-serif, Georgia, "Times New Roman", serif;
+  font-size: clamp(22px, 3vw, 30px);
+  letter-spacing: -0.04em;
+  line-height: 0.95;
+}
+
+.hero-proof span {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.demo-status {
+  display: grid;
+  grid-template-columns: 1.25fr 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.status-card {
+  border: 1px solid rgba(19, 32, 34, 0.14);
+  border-radius: 20px;
+  background: rgba(255, 250, 240, 0.78);
+  box-shadow: 0 16px 40px rgba(37, 29, 16, 0.08);
+  padding: 13px 14px;
+}
+
+.status-card b {
+  display: block;
+  color: var(--green-dark);
+  font-size: 12px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+
+.status-card span {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.model-budget {
+  display: grid;
+  grid-template-columns: 1.2fr repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.budget-card {
+  border: 1px solid rgba(19, 32, 34, 0.15);
+  border-radius: 20px;
+  background: var(--card-solid);
+  padding: 13px 14px;
+}
+
+.budget-card:first-child {
+  background:
+    radial-gradient(circle at top right, rgba(0, 108, 91, 0.16), transparent 46%),
+    var(--card-solid);
+}
+
+.budget-card b {
+  display: block;
+  color: var(--ink);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.budget-card span {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.42;
+}
+
 #main-workspace {
   gap: 18px;
   margin-top: 20px;
@@ -130,6 +239,13 @@ CSS = """
   background: var(--card);
   box-shadow: 0 18px 52px rgba(37, 29, 16, 0.08);
   padding: clamp(14px, 2vw, 20px);
+}
+
+@media (min-width: 941px) {
+  .input-card {
+    position: sticky;
+    top: 16px;
+  }
 }
 
 .section-title {
@@ -153,15 +269,42 @@ CSS = """
 .panel {
   border: 1px solid rgba(19, 32, 34, 0.13);
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.72);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.82), rgba(255, 250, 240, 0.74));
   box-shadow: none;
-  padding: 8px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
 }
 
 .panel h3 {
   color: var(--green-dark);
   font-family: ui-serif, Georgia, "Times New Roman", serif;
   letter-spacing: -0.01em;
+}
+
+.panel h3:first-child {
+  margin-top: 0;
+}
+
+.panel ul,
+.final-sheet ul {
+  padding-left: 1.15rem;
+}
+
+.panel li,
+.final-sheet li {
+  margin-bottom: 5px;
+}
+
+.output-stack pre,
+.output-stack code {
+  max-width: 100% !important;
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
+}
+
+.output-stack pre {
+  overflow-x: auto !important;
 }
 
 .input-card textarea,
@@ -180,6 +323,8 @@ CSS = """
   background: var(--green) !important;
   border-color: var(--green) !important;
   border-radius: 16px !important;
+  color: white !important;
+  font-weight: 850 !important;
   min-height: 46px;
   box-shadow: 0 12px 28px rgba(0, 108, 91, 0.24);
 }
@@ -192,6 +337,7 @@ CSS = """
   border-color: var(--coral) !important;
   color: var(--coral) !important;
   border-radius: 16px !important;
+  font-weight: 800 !important;
   min-height: 46px;
 }
 
@@ -203,6 +349,15 @@ CSS = """
   padding: 10px 12px;
   font-size: 13px;
   color: #443715;
+}
+
+.runtime-label {
+  margin: 4px 0 -4px;
+  color: var(--green-dark);
+  font-size: 12px;
+  font-weight: 850;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
 }
 
 .final-sheet {
@@ -297,6 +452,28 @@ CSS = """
   font-size: 13px;
 }
 
+.case-list {
+  gap: 8px;
+}
+
+.case-button button {
+  justify-content: flex-start !important;
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid rgba(0, 108, 91, 0.18) !important;
+  border-radius: 15px !important;
+  background: rgba(255, 250, 240, 0.72) !important;
+  color: #243636 !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  text-align: left !important;
+}
+
+.case-button button:hover {
+  border-color: rgba(0, 108, 91, 0.36) !important;
+  background: rgba(0, 108, 91, 0.08) !important;
+}
+
 .claim-strip {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -365,6 +542,11 @@ CSS = """
     grid-template-columns: 1fr;
   }
 
+  .demo-status,
+  .model-budget {
+    grid-template-columns: 1fr;
+  }
+
   #main-workspace {
     flex-direction: column !important;
   }
@@ -388,6 +570,10 @@ CSS = """
 
   .hero-steps span {
     width: 100%;
+  }
+
+  .hero-proof {
+    grid-template-columns: 1fr;
   }
 
   .input-card,
@@ -424,6 +610,11 @@ HERO_HTML = """
       <span>3. Drill only what matters</span>
       <span>4. Walk in with a final sheet</span>
     </div>
+    <div class="hero-proof" aria-label="Rescue packet contents">
+      <div><b>5</b><span>practice drills generated from the student's own topics</span></div>
+      <div><b>1</b><span>proof target before the student stops studying</span></div>
+      <div><b>90s</b><span>judge demo path: panic to final sheet</span></div>
+    </div>
   </div>
 </section>
 """
@@ -449,20 +640,6 @@ CLAIM_STATUS_HTML = """
   </section>
 </details>
 """
-
-
-DEMO_EXAMPLES = [
-    [
-        case["student_name"],
-        case["subject"],
-        case["time_left_minutes"],
-        case["exam_format"],
-        case["panic_note"],
-        case["known_material"],
-        case["confidence"],
-    ]
-    for case in DEMO_CASES
-]
 
 
 def generate(
@@ -506,10 +683,44 @@ def load_example():
     )
 
 
+def load_case(index: int):
+    case = DEMO_CASES[index]
+    return (
+        case["student_name"],
+        case["subject"],
+        case["time_left_minutes"],
+        case["exam_format"],
+        case["panic_note"],
+        case["known_material"],
+        case["confidence"],
+    )
+
+
 with gr.Blocks(title="Exam Panic Rescue") as demo:
     gr.HTML(f"<style>{CSS}</style>", container=False)
     with gr.Column(elem_classes=["app-shell"]):
         gr.HTML(HERO_HTML, container=False)
+        gr.HTML(
+            """
+<section class="demo-status" aria-label="Demo status">
+  <div class="status-card"><b>Loaded case</b><span>Physics numericals: formula panic, 120 minutes left, confidence 2/5.</span></div>
+  <div class="status-card"><b>Space-safe</b><span>CPU-only Spaces use the deterministic fallback; upgraded hardware can test MiniCPM or Gemma.</span></div>
+  <div class="status-card"><b>Best judge path</b><span>Click once, then show triage clock, proof target, final sheet, and field note.</span></div>
+</section>
+""",
+            container=False,
+        )
+        gr.HTML(
+            """
+<section class="model-budget" aria-label="Model budget">
+  <div class="budget-card"><b>Model budget</b><span>The hackathon ceiling is <=32B parameters, but hardware is the real gate.</span></div>
+  <div class="budget-card"><b>HF CPU basic</b><span>2 vCPU, 16GB RAM, 50GB disk: great for the product demo, not for a 27B live model.</span></div>
+  <div class="budget-card"><b>Default target</b><span>OpenBMB MiniCPM stays the submission-aligned model path when hardware can run it.</span></div>
+  <div class="budget-card"><b>Gemma 27B</b><span>Comparison only: needs accepted license access plus upgraded GPU-class hardware.</span></div>
+</section>
+""",
+            container=False,
+        )
 
         with gr.Row(equal_height=False, elem_id="main-workspace"):
             with gr.Column(scale=5, min_width=320, elem_classes=["input-card"]):
@@ -577,15 +788,24 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     gr.HTML(
                         """
 <h2>Try another panic case</h2>
-<p>One click loads a different subject, time window, and exam format.</p>
+<p>One click loads a different subject, time window, and exam format. No spreadsheet table, just demo paths.</p>
 """,
                         container=False,
                     )
-                    gr.Examples(
-                        examples=DEMO_EXAMPLES,
-                        inputs=inputs,
-                        label="Load a panic case",
-                    )
+                    case_buttons = []
+                    with gr.Column(elem_classes=["case-list"]):
+                        for index, case in enumerate(DEMO_CASES):
+                            label = f"{case['name'].title()} · {case['time_left_minutes']} min · {case['exam_format']}"
+                            case_buttons.append(
+                                (
+                                    gr.Button(
+                                        label,
+                                        size="lg",
+                                        elem_classes=["case-button"],
+                                    ),
+                                    index,
+                                )
+                            )
 
             with gr.Column(scale=7, min_width=340, elem_classes=["output-stack"]):
                 gr.HTML(
@@ -603,6 +823,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                 final_sheet_output = gr.HTML(elem_classes=["panel"])
                 demo_receipt_output = gr.Markdown(elem_classes=["panel"])
                 field_note_output = gr.Markdown(elem_classes=["panel"])
+                gr.HTML('<div class="runtime-label">Runtime note</div>', container=False)
                 model_note = gr.Markdown(elem_id="model-note")
 
         outputs = [
@@ -615,9 +836,16 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
             model_note,
         ]
         gr.HTML(CLAIM_STATUS_HTML, container=False)
-    run.click(generate, inputs=inputs, outputs=outputs)
-    panic_note.submit(generate, inputs=inputs, outputs=outputs)
-    example.click(load_example, outputs=inputs).then(generate, inputs=inputs, outputs=outputs)
+    run.click(generate, inputs=inputs, outputs=outputs, scroll_to_output=True)
+    panic_note.submit(generate, inputs=inputs, outputs=outputs, scroll_to_output=True)
+    example.click(load_example, outputs=inputs).then(generate, inputs=inputs, outputs=outputs, scroll_to_output=True)
+    for case_button, case_index in case_buttons:
+        case_button.click(lambda index=case_index: load_case(index), outputs=inputs).then(
+            generate,
+            inputs=inputs,
+            outputs=outputs,
+            scroll_to_output=True,
+        )
     demo.load(generate, inputs=inputs, outputs=outputs)
 
 

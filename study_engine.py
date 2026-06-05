@@ -13,7 +13,6 @@ from functools import lru_cache
 
 
 DEFAULT_MODEL_ID = os.getenv("MODEL_ID", "openbmb/MiniCPM4.1-8B")
-USE_LOCAL_MODEL = os.getenv("USE_LOCAL_MODEL", "1").strip() not in {"0", "false", "False"}
 USE_LLAMA_CPP = os.getenv("USE_LLAMA_CPP", "0").strip() in {"1", "true", "True"}
 LLAMA_CPP_BACKEND = os.getenv("LLAMA_CPP_BACKEND", "auto").strip().lower()
 LLAMA_CPP_CLI = os.getenv("LLAMA_CPP_CLI", "llama-cli").strip() or "llama-cli"
@@ -24,6 +23,30 @@ LLAMA_CPP_HF_SELECTOR = os.getenv("LLAMA_CPP_HF_SELECTOR", "Q4_K_M").strip() or 
 USE_COHERE_REVIEW = os.getenv("USE_COHERE_REVIEW", "0").strip() in {"1", "true", "True"}
 COHERE_MODEL = os.getenv("COHERE_MODEL", "command-a-plus-05-2026")
 COHERE_API_URL = "https://api.cohere.com/v2/chat"
+
+
+def resolve_local_model_mode() -> tuple[bool, str]:
+    configured = os.getenv("USE_LOCAL_MODEL")
+    if configured is not None:
+        enabled = configured.strip() not in {"0", "false", "False"}
+        if enabled:
+            return True, ""
+        return False, "Small-model generation disabled with USE_LOCAL_MODEL=0; fallback study plan used."
+
+    accelerator = os.getenv("ACCELERATOR", "none").strip().lower()
+    is_hf_space = bool(os.getenv("SPACE_ID"))
+    cpu_only_space = is_hf_space and accelerator in {"", "none"}
+    if cpu_only_space and not USE_LLAMA_CPP:
+        return (
+            False,
+            "HF Space CPU-only runtime detected; fallback study plan used. "
+            "Set USE_LOCAL_MODEL=1 only after upgrading hardware or configuring a small GGUF route.",
+        )
+
+    return True, ""
+
+
+USE_LOCAL_MODEL, LOCAL_MODEL_DISABLED_NOTE = resolve_local_model_mode()
 
 PANIC_TERMS = {
     "panic",
@@ -164,7 +187,7 @@ def chat_messages(data: StudyInput, topics: list[str]) -> list[dict[str, str]]:
 
 
 @lru_cache(maxsize=1)
-def _gemma4_model():
+def _image_text_model():
     import torch
     from transformers import AutoModelForImageTextToText, AutoProcessor
 
@@ -213,17 +236,23 @@ def _generator():
     )
 
 
-def gemma4_rescue(data: StudyInput, topics: list[str]) -> tuple[str | None, str]:
+def image_text_rescue(data: StudyInput, topics: list[str]) -> tuple[str | None, str]:
     try:
-        processor, model = _gemma4_model()
-        inputs = processor.apply_chat_template(
-            chat_messages(data, topics),
-            tokenize=True,
-            return_dict=True,
-            return_tensors="pt",
-            add_generation_prompt=True,
-            enable_thinking=False,
-        ).to(model.device)
+        processor, model = _image_text_model()
+        template_kwargs = {
+            "conversation": chat_messages(data, topics),
+            "tokenize": True,
+            "return_dict": True,
+            "return_tensors": "pt",
+            "add_generation_prompt": True,
+        }
+        try:
+            inputs = processor.apply_chat_template(**template_kwargs, enable_thinking=False)
+        except TypeError:
+            inputs = processor.apply_chat_template(**template_kwargs)
+        device = getattr(model, "device", None)
+        if device is not None:
+            inputs = inputs.to(device)
         input_len = inputs["input_ids"].shape[-1]
         outputs = model.generate(**inputs, max_new_tokens=260, do_sample=False)
         response = processor.decode(outputs[0][input_len:], skip_special_tokens=True)
@@ -420,7 +449,7 @@ Return one short line that starts with "Cohere quality check:".
 
 def model_rescue(data: StudyInput, topics: list[str]) -> tuple[str | None, str]:
     if not USE_LOCAL_MODEL:
-        return None, "Small-model generation disabled with USE_LOCAL_MODEL=0; fallback study plan used."
+        return None, LOCAL_MODEL_DISABLED_NOTE
 
     if USE_LLAMA_CPP:
         backend = LLAMA_CPP_BACKEND if LLAMA_CPP_BACKEND in {"auto", "cli", "python"} else "auto"
@@ -459,8 +488,8 @@ def model_rescue(data: StudyInput, topics: list[str]) -> tuple[str | None, str]:
             source = LLAMA_CPP_MODEL_PATH or f"{LLAMA_CPP_REPO_ID}:{LLAMA_CPP_FILENAME}"
             return generated, f"Generated locally with llama-cpp-python model {source}."
 
-    if DEFAULT_MODEL_ID.lower().startswith("google/gemma-4"):
-        return gemma4_rescue(data, topics)
+    if DEFAULT_MODEL_ID.lower().startswith(("google/gemma-3", "google/gemma-4")):
+        return image_text_rescue(data, topics)
 
     try:
         result = _generator()(
