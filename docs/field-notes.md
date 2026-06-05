@@ -18,6 +18,14 @@ The first target workflow is a student who has a test soon and can only describe
 - NVIDIA/local fit: the app has no cloud API dependency and can run with local or Space hardware, with optional `llama.cpp` support. TinyLlama and official OpenBMB MiniCPM4 0.5B GGUF smokes passed through the CLI path; final Llama Champion claim still depends on showing that route in final demo/materials.
 - Runtime honesty: CPU-only Hugging Face Spaces use the deterministic fallback by default; OpenBMB, Gemma, or GGUF routes should be shown only after a matching model-backed smoke.
 
+## What Changed During Build
+
+- Chose a relatable student panic workflow instead of a generic productivity assistant.
+- Kept the app small: one panic dump in, one rescue packet out.
+- Added a model-budget strip so judges can see that `<=32B` is a rule ceiling, while free CPU Space hardware still needs an honest fallback.
+- Replaced the overflowing examples table with four large panic-case buttons after visual QA showed the table made the demo feel like a spreadsheet.
+- Added mobile code wrapping after visual QA showed the copyable field-note block could overflow on a 390px viewport.
+
 ## Bonus Quests
 
 - Off-Brand: custom Gradio Blocks layout and CSS.
@@ -36,6 +44,16 @@ The first target workflow is a student who has a test soon and can only describe
 - The same cases are published as JSONL at `data/readiness_cases.jsonl` so reviewers can inspect the tiny eval set.
 - Local app smoke: `USE_LOCAL_MODEL=0 python app.py`
 - Space smoke: run once and confirm the model note is truthful: either it reports `openbmb/MiniCPM4.1-8B` on capable hardware or a CPU-only fallback note on free/basic hardware.
+
+Latest verified checks on 2026-06-05:
+
+- Unit tests: `18/18`.
+- Demo readiness smoke: `28/28`.
+- Staging readiness: `11/11`.
+- Codex evidence check: `10/10`.
+- Local Space smoke: `4/4`.
+- Live Space smoke: `4/4`.
+- Full preflight: `26` passed, `3` expected external evidence blockers.
 
 ## Submission Checklist
 

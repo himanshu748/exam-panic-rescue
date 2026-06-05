@@ -65,6 +65,8 @@ The app stays intentionally narrow: one stressed student, one exam, one time box
 10. Added a public claim-status panel in the Gradio UI so judges can see claim discipline without reading private docs.
 11. Added a 90-second demo path rail and per-run demo receipt so the before/after is visible without narration.
 12. Added a model-budget strip and CPU-only Space fallback guard so the demo distinguishes the `<=32B` rule ceiling from practical HF hardware.
+13. Replaced the default Gradio Examples table with compact panic-case buttons after visual QA found the table overflowed and distracted from the product.
+14. Added mobile code wrapping after visual QA found the copyable field-note block could overflow on a 390px viewport.
 
 ## Current Evidence
 
@@ -80,6 +82,8 @@ The app stays intentionally narrow: one stressed student, one exam, one time box
 - Live Space runtime smoke passed root HTTP `200`, Gradio `/config` HTTP `200`, required public markers, and no obvious private/internal markers.
 - Optional `llama.cpp` CLI app path produced non-fallback model notes with TinyLlama GGUF and an official OpenBMB MiniCPM4 0.5B GGUF local-file route.
 - CPU-only Hugging Face Space runtime now defaults to deterministic fallback unless `USE_LOCAL_MODEL=1` is explicitly set after hardware is upgraded or a small GGUF path is configured.
+- Public commit `bde9681` published the latest UI and hardware-honesty pass to GitHub and the Hugging Face Space.
+- Latest local visual QA covered desktop `1280px` and mobile `390px` layouts.
 
 ## Open Work Before Final Submission
 
