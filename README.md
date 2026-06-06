@@ -2,18 +2,19 @@
 title: Exam Panic Rescue
 sdk: gradio
 app_file: app.py
+python_version: 3.10.13
 license: mit
 ---
 
 # Exam Panic Rescue
 
-Exam Panic Rescue turns a student's last-minute panic dump into a survival plan, drill deck, triage clock, panic-pattern readout, proof target, final sheet, demo receipt, and field-note prompt.
+Exam Panic Rescue turns a student's last-minute panic dump into a survival plan, drill deck, triage clock, panic-pattern readout, proof target, final sheet, study receipt, and field-note prompt.
 
 The first target workflow is a student who has an exam soon, feels stuck, and cannot decide what to study first. The app is intentionally narrow: one stressed student, one exam, one time box, one final sheet.
 
-The app includes four built-in panic cases for fast judging: biology definitions, physics numericals, history long answers, and math MCQ traps. These are the same cases used by the local readiness smoke test and published as [data/readiness_cases.jsonl](data/readiness_cases.jsonl). Each run names the likely panic pattern, gives the student one proof target before they stop studying, produces a short demo receipt, and emits a copyable field-note prompt for real-user follow-up.
+The app includes four built-in student scenarios for quick evaluation and self-try: biology definitions, physics numericals, history long answers, and math MCQ traps. These are the same cases used by the local readiness smoke test and published as [data/readiness_cases.jsonl](data/readiness_cases.jsonl). Each run names the likely panic pattern, gives the student one proof target before they stop studying, produces a short study receipt, and emits a copyable field-note prompt for real-user follow-up.
 
-The public UI keeps the demo first and puts build-proof/claim status in a small collapsible section so sponsor evidence does not distract from the product.
+The public UI keeps the student workflow first and puts build-proof/claim status in a small collapsible section so sponsor evidence does not distract from the product.
 
 ## Build Status
 
@@ -23,7 +24,15 @@ Public build notes and demo prep are drafted in [docs/codex-build-trace.md](docs
 
 Public GitHub evidence repo: https://github.com/himanshu748/exam-panic-rescue
 
-Hardware note: the hackathon rule allows models up to `<=32B`, but the live Gradio Space hardware still determines what is practical. The public demo stays Space-safe and uses an honest fallback if MiniCPM hardware is unavailable; local GGUF routes are documented only when separately smoke-tested.
+Hardware note: the hackathon rule allows models up to `<=32B`, but the live Gradio Space hardware still determines what is practical. The current public Space is safe on `cpu-basic`; the app is also prepared for Hugging Face ZeroGPU through the `spaces` package and `@spaces.GPU(duration=120)`. The final MiniCPM live-generation claim should only be made after the Space hardware is switched to ZeroGPU, `USE_LOCAL_MODEL=1` is set, and a manual model-backed smoke is captured.
+
+## How A Student Uses It When Time Is Low
+
+1. Paste the messy panic note and the actual topics they half-know.
+2. Let the app extract a short hit list instead of rereading the full syllabus.
+3. Follow the drill deck for the highest-value leak first.
+4. Use the proof target to decide when to stop drilling.
+5. Read only the final sheet in the last block so new chapters do not restart the panic spiral.
 
 ## Hackathon Fit
 
@@ -31,7 +40,7 @@ Hardware note: the hackathon rule allows models up to `<=32B`, but the live Grad
 - Build surface: Gradio `Blocks` app hosted as a Hugging Face Space.
 - Model rule: the default model target is `openbmb/MiniCPM4.1-8B`, under the `<=32B` limit.
 - OpenAI Codex track: built with Codex; public GitHub repo is linked from this Space README.
-- OpenBMB angle: the default local model path targets `openbmb/MiniCPM4.1-8B`.
+- OpenBMB angle: the default model path targets `openbmb/MiniCPM4.1-8B`, with a ZeroGPU-ready Gradio handler for the live Space path.
 - NVIDIA/local angle: no cloud API dependency; the app can run locally or on Space hardware, with an optional `llama.cpp` path when a GGUF model is available.
 - Cohere note: supporting sponsor only for now; an optional `USE_COHERE_REVIEW=1` hook exists, but the main demo stays local-first and does not claim Cohere usage.
 - JetBrains angle: documented PyCharm/JetBrains run workflow for app, tests, and readiness checks.
@@ -44,7 +53,7 @@ See [docs/sponsor-coverage.md](docs/sponsor-coverage.md) for the current sponsor
 - Public GitHub repo with Codex-attributed commits: https://github.com/himanshu748/exam-panic-rescue
 - Space README links to that repo: ready.
 - Hugging Face Space commit history is useful for staging, but the Codex track still needs the separate public GitHub evidence above.
-- Demo video shows one student panic dump becoming a rescue plan, drill deck, triage clock, panic pattern, proof target, final sheet, demo receipt, and field-note prompt.
+- Demo video shows one student panic dump becoming a rescue plan, drill deck, triage clock, panic pattern, proof target, final sheet, study receipt, and field-note prompt.
 - Before final submission, the demo/social links should be live.
 
 ## Local Run
@@ -57,6 +66,17 @@ USE_LOCAL_MODEL=0 python app.py
 ```
 
 Set `USE_LOCAL_MODEL=1` to try the OpenBMB/MiniCPM model path after the hardware can handle it. On a Hugging Face CPU-only Space, the app defaults to the deterministic fallback unless that flag is explicitly set.
+
+ZeroGPU Space route:
+
+```bash
+# In Hugging Face Space settings:
+# 1. Hardware: ZeroGPU
+# 2. Variable: USE_LOCAL_MODEL=1
+# 3. Variable: PRELOAD_TRANSFORMER_MODEL=1
+```
+
+The generation handler is decorated with `@spaces.GPU(duration=120)`. Hugging Face ZeroGPU currently gives PRO and Team users 40 minutes/day of included GPU quota, so final demo prep should use short smoke runs rather than repeated full generations.
 
 Optional local `llama.cpp` mode:
 

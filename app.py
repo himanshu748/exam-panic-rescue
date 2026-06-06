@@ -4,6 +4,19 @@ import os
 
 import gradio as gr
 
+try:
+    import spaces
+except ImportError:  # Local tests should not require the HF Spaces runtime package.
+    class _SpacesFallback:
+        @staticmethod
+        def GPU(*args, **kwargs):
+            def decorator(fn):
+                return fn
+
+            return decorator
+
+    spaces = _SpacesFallback()
+
 from study_engine import DEMO_CASES, EXAMPLE_INPUT, build_rescue_plan
 
 
@@ -653,9 +666,9 @@ HERO_HTML = """
 <section class="hero">
   <div>
     <div class="eyebrow">Exam Panic Rescue</div>
-    <h1>Paste the panic. Get the rescue packet.</h1>
-    <p>A tiny study coach for the final crunch: it turns one messy panic dump into a calm plan, five drills, a triage clock, and the last sheet to read before walking into the exam.</p>
-    <div class="hero-steps" aria-label="Demo flow">
+    <h1>When time is low, stop rereading everything.</h1>
+    <p>A practical study rescue for students in the final crunch: paste what you know, what scares you, and how much time is left. Get one ranked path, five drills, a triage clock, and the last sheet to read before the exam.</p>
+    <div class="hero-steps" aria-label="Rescue flow">
       <span>1. Dump the panic</span>
       <span>2. Rank the leaks</span>
       <span>3. Drill only what matters</span>
@@ -664,7 +677,7 @@ HERO_HTML = """
     <div class="hero-proof" aria-label="Rescue packet contents">
       <div><b>5</b><span>practice drills generated from the student's own topics</span></div>
       <div><b>1</b><span>proof target before the student stops studying</span></div>
-      <div><b>90s</b><span>judge demo path: panic to final sheet</span></div>
+      <div><b>0</b><span>new chapters in the last block; protect marks from what is already possible</span></div>
     </div>
   </div>
 </section>
@@ -673,8 +686,8 @@ HERO_HTML = """
 
 CLAIM_STATUS_HTML = """
 <details class="proof-details">
-  <summary>Build proof and claim status</summary>
-  <p><strong>90-second demo path:</strong> load a panic case, build the rescue plan, show the proof target/final sheet, then copy the field note.</p>
+  <summary>Hackathon build proof and claim status</summary>
+  <p><strong>How to review fast:</strong> load a sample scenario, build the rescue packet, show the proof target/final sheet, then copy the field note. The product path stays the same for a real student.</p>
   <section class="claim-strip" aria-label="Public claim status">
     <div class="claim-card">
       <b>Claim now</b>
@@ -689,10 +702,16 @@ CLAIM_STATUS_HTML = """
       <span>Well-Tuned or any untested runtime prize until real evidence exists.</span>
     </div>
   </section>
+  <section class="model-budget" aria-label="Runtime claim status">
+    <div class="budget-card"><b>Model budget</b><span>MiniCPM4.1-8B fits the <=32B rule; hardware is the real gate.</span></div>
+    <div class="budget-card"><b>ZeroGPU-ready</b><span>40 min/day lets us smoke MiniCPM without turning the whole product into a hardware gamble.</span></div>
+    <div class="budget-card"><b>Default target</b><span>OpenBMB MiniCPM stays the submission-aligned model path when hardware can run it.</span></div>
+  </section>
 </details>
 """
 
 
+@spaces.GPU(duration=120)
 def generate(
     student_name: str,
     subject: str,
@@ -753,20 +772,20 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
         gr.HTML(HERO_HTML, container=False)
         gr.HTML(
             """
-<section class="demo-status" aria-label="Demo status">
-  <div class="status-card"><b>Loaded case</b><span>Physics numericals: formula panic, 120 minutes left, confidence 2/5.</span></div>
-  <div class="status-card"><b>Space-safe</b><span>CPU-only Spaces use the deterministic fallback; upgraded hardware can test MiniCPM.</span></div>
-  <div class="status-card"><b>Best judge path</b><span>Click once, then show triage clock, proof target, final sheet, and field note.</span></div>
+<section class="demo-status" aria-label="Study status">
+  <div class="status-card"><b>Start here</b><span>Use the loaded physics panic or replace it with your own exam, notes, and time left.</span></div>
+  <div class="status-card"><b>Space-safe</b><span>CPU-basic uses the deterministic fallback; ZeroGPU can test MiniCPM inside quota.</span></div>
+  <div class="status-card"><b>Low-time rule</b><span>Do not learn everything. Choose marks to protect, drill one leak, then make the final sheet.</span></div>
 </section>
 """,
             container=False,
         )
         gr.HTML(
             """
-<section class="model-budget" aria-label="Model budget">
-  <div class="budget-card"><b>Model budget</b><span>MiniCPM4.1-8B fits the <=32B rule; hardware is the real gate.</span></div>
-  <div class="budget-card"><b>HF CPU basic</b><span>2 vCPU, 16GB RAM, 50GB disk: great for the product demo, not for live MiniCPM inference.</span></div>
-  <div class="budget-card"><b>Default target</b><span>OpenBMB MiniCPM stays the submission-aligned model path when hardware can run it.</span></div>
+<section class="model-budget" aria-label="Low-time study method">
+  <div class="budget-card"><b>First 2 minutes</b><span>Write what you remember, circle one leak, and stop opening new chapters.</span></div>
+  <div class="budget-card"><b>Main block</b><span>Drill the highest-value topic with one format-specific proof target.</span></div>
+  <div class="budget-card"><b>Final block</b><span>Read only the final sheet: first action, protected marks, and the do-not-do guardrail.</span></div>
 </section>
 """,
             container=False,
@@ -777,8 +796,8 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                 gr.HTML(
                     """
 <div class="section-title">
-  <h2>Run the demo</h2>
-  <p>The physics case is loaded. Change it or pick another panic case below, then build the rescue packet.</p>
+  <h2>Build your rescue packet</h2>
+  <p>Use the loaded physics case as a template, or replace it with your real exam. The packet is meant to be followed in order.</p>
 </div>
 """,
                     container=False,
@@ -831,14 +850,14 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     info="The plan changes if there are 45 minutes vs. a full day.",
                 )
                 with gr.Row():
-                    run = gr.Button("Build rescue plan", variant="primary", elem_classes=["primary-action"])
+                    run = gr.Button("Build my rescue packet", variant="primary", elem_classes=["primary-action"])
                     example = gr.Button("Load example", elem_classes=["secondary-action"])
                 inputs = [student_name, subject, time_left_minutes, exam_format, panic_note, known_material, confidence]
                 with gr.Column(elem_classes=["demo-cases"]):
                     gr.HTML(
                         """
-<h2>Try another panic case</h2>
-<p>One click loads a different subject, time window, and exam format. No spreadsheet table, just demo paths.</p>
+<h2>Try another student scenario</h2>
+<p>Use these to see how the rescue changes for short answers, numericals, long answers, and MCQ traps.</p>
 """,
                         container=False,
                     )
@@ -861,8 +880,8 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                 gr.HTML(
                     """
 <div class="section-title">
-  <h2>The rescue packet</h2>
-  <p>This is the product: the plan, drills, clock, final sheet, receipt, and field note in one screen.</p>
+  <h2>Your low-time learning packet</h2>
+  <p>Follow this top to bottom: reset, drill, protect marks, stop the spiral, and keep one receipt of what changed.</p>
 </div>
 """,
                     container=False,

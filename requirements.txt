@@ -1,4 +1,5 @@
 gradio==6.16.0
+spaces>=0.50,<1
 transformers>=4.56,<5
 torch>=2.2
 accelerate>=0.33

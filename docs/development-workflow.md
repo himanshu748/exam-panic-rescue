@@ -1,6 +1,6 @@
 # Development Workflow
 
-Updated: 2026-06-05
+Updated: 2026-06-06
 
 This file exists to make the project easy to run, inspect, and judge from common developer tools, including JetBrains/PyCharm, without committing IDE-specific `.idea/` files.
 
@@ -39,6 +39,18 @@ USE_LOCAL_MODEL=1 python3 app.py
 
 On Hugging Face CPU-only hardware, the app defaults to the deterministic fallback unless `USE_LOCAL_MODEL=1` is explicitly set. This prevents the live demo from timing out while still preserving the OpenBMB path for upgraded hardware or local smoke tests.
 
+## Hugging Face ZeroGPU Smoke
+
+Official ZeroGPU docs require Gradio, the `spaces` package, and `@spaces.GPU` around GPU-dependent functions. The app now decorates the main generation handler with `@spaces.GPU(duration=120)`, while keeping the local fallback decorator for non-HF runs.
+
+Before claiming live MiniCPM generation on the Space:
+
+1. In Space settings, switch hardware from `cpu-basic` to ZeroGPU.
+2. Set Space variable `USE_LOCAL_MODEL=1`.
+3. Set Space variable `PRELOAD_TRANSFORMER_MODEL=1` for the model-backed smoke so HF can place the model during startup instead of lazy-moving it inside a request.
+4. Run one built-in student scenario and confirm the model note says `Generated with openbmb/MiniCPM4.1-8B on CUDA/ZeroGPU.`
+5. If it falls back or queues out, keep the public claim as ZeroGPU-ready rather than model-backed.
+
 ## JetBrains/PyCharm Setup
 
 Create three Python run configurations:
@@ -54,6 +66,7 @@ Do not commit `.idea/` unless the team explicitly decides to version IDE configu
 ## Optional Sponsor Hooks
 
 - OpenBMB default: `MODEL_ID=openbmb/MiniCPM4.1-8B`
+- ZeroGPU handler: `spaces>=0.50,<1` with `@spaces.GPU(duration=120)`
 - Cohere review: `USE_COHERE_REVIEW=1 COHERE_API_KEY=...`
 - llama.cpp runtime: `USE_LLAMA_CPP=1 LLAMA_CPP_MODEL_PATH=/path/to/model.gguf`
 

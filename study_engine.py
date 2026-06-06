@@ -13,6 +13,8 @@ from functools import lru_cache
 
 
 DEFAULT_MODEL_ID = os.getenv("MODEL_ID", "openbmb/MiniCPM4.1-8B")
+TRANSFORMER_DEVICE_NOTE = "CPU"
+TRANSFORMER_PRELOAD_NOTE = ""
 USE_LLAMA_CPP = os.getenv("USE_LLAMA_CPP", "0").strip() in {"1", "true", "True"}
 LLAMA_CPP_BACKEND = os.getenv("LLAMA_CPP_BACKEND", "auto").strip().lower()
 LLAMA_CPP_CLI = os.getenv("LLAMA_CPP_CLI", "llama-cli").strip() or "llama-cli"
@@ -213,12 +215,28 @@ def _llama_cpp_model():
 def _generator():
     from transformers import pipeline
 
-    return pipeline(
-        "text-generation",
-        model=DEFAULT_MODEL_ID,
-        trust_remote_code=True,
-        device=-1,
-    )
+    kwargs = {
+        "task": "text-generation",
+        "model": DEFAULT_MODEL_ID,
+        "trust_remote_code": True,
+    }
+
+    global TRANSFORMER_DEVICE_NOTE
+    try:
+        import torch
+    except Exception:
+        kwargs["device"] = -1
+        TRANSFORMER_DEVICE_NOTE = "CPU"
+    else:
+        if torch.cuda.is_available():
+            kwargs["device_map"] = "auto"
+            kwargs["torch_dtype"] = torch.bfloat16
+            TRANSFORMER_DEVICE_NOTE = "CUDA/ZeroGPU"
+        else:
+            kwargs["device"] = -1
+            TRANSFORMER_DEVICE_NOTE = "CPU"
+
+    return pipeline(**kwargs)
 
 
 def generated_text_from_pipeline_result(result) -> str:
@@ -251,6 +269,41 @@ def int_env(name: str, default: int) -> int:
         return int(os.getenv(name, str(default)))
     except ValueError:
         return default
+
+
+def bool_env(name: str, default: bool = False) -> bool:
+    configured = os.getenv(name)
+    if configured is None:
+        return default
+    return configured.strip() in {"1", "true", "True", "yes", "YES"}
+
+
+def accelerator_available() -> bool:
+    accelerator = os.getenv("ACCELERATOR", "none").strip().lower()
+    return accelerator not in {"", "none", "cpu-basic", "cpu-upgrade"}
+
+
+def should_preload_transformer_model() -> bool:
+    configured = os.getenv("PRELOAD_TRANSFORMER_MODEL")
+    if configured is not None:
+        return bool_env("PRELOAD_TRANSFORMER_MODEL")
+    return bool(os.getenv("SPACE_ID")) and accelerator_available()
+
+
+def maybe_preload_transformer_model() -> None:
+    global TRANSFORMER_PRELOAD_NOTE
+    if not USE_LOCAL_MODEL or USE_LLAMA_CPP or not should_preload_transformer_model():
+        return
+
+    try:
+        _generator()
+    except Exception as exc:
+        TRANSFORMER_PRELOAD_NOTE = f"Transformer preload skipped after error: {exc}"
+    else:
+        TRANSFORMER_PRELOAD_NOTE = f"Transformer model preloaded on {TRANSFORMER_DEVICE_NOTE}."
+
+
+maybe_preload_transformer_model()
 
 
 def llama_cli_available() -> bool:
@@ -449,12 +502,15 @@ def model_rescue(data: StudyInput, topics: list[str]) -> tuple[str | None, str]:
             return_full_text=False,
         )
     except Exception as exc:
-        return None, f"Using fallback study engine because {DEFAULT_MODEL_ID} was unavailable: {exc}"
+        details = str(exc)
+        if TRANSFORMER_PRELOAD_NOTE:
+            details = f"{details} | {TRANSFORMER_PRELOAD_NOTE}"
+        return None, f"Using fallback study engine because {DEFAULT_MODEL_ID} was unavailable: {details}"
 
     generated = generated_text_from_pipeline_result(result)
     if not generated:
         return None, f"{DEFAULT_MODEL_ID} returned an empty plan; fallback used."
-    return generated, f"Generated with {DEFAULT_MODEL_ID}."
+    return generated, f"Generated with {DEFAULT_MODEL_ID} on {TRANSFORMER_DEVICE_NOTE}."
 
 
 def fallback_drills(subject: str, topics: list[str], exam_format: str) -> list[str]:
@@ -588,12 +644,12 @@ def build_demo_receipt_markdown(data: StudyInput, pattern: str, topics: list[str
     weakness = weaknesses[0] if weaknesses else "the first visible leak"
     proof = proof_checklist(data.exam_format, topics)
     return (
-        "### Demo receipt\n\n"
+        "### Study receipt\n\n"
         f"- Before: {compact(data.student_name) or 'student'} starts at **{data.confidence}/5** confidence with **{pattern}**.\n"
         f"- First move: attack **{topic}** instead of rereading everything.\n"
         f"- Leak to patch: **{weakness}**.\n"
         f"- Proof of work: **{proof}**\n"
-        "- Build Small fit: one student, one exam window, one useful artifact, no required cloud key."
+        "- Practical fit: one student, one exam window, one useful artifact, no required cloud key."
     )
 
 

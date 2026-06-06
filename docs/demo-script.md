@@ -1,6 +1,6 @@
 # Demo Script
 
-Updated: 2026-06-05
+Updated: 2026-06-06
 
 Goal: one clean demo under 90 seconds.
 
@@ -28,7 +28,7 @@ Settings:
 - Confidence: `2`
 - Minutes left: `120`
 
-Fast path in the UI: click the built-in `physics numericals` panic case under "Try another panic case", then run the rescue.
+Fast path in the UI: use the loaded physics case or click the built-in `physics numericals` scenario under "Try another student scenario", then run the rescue.
 
 ## Talk Track
 
@@ -53,7 +53,7 @@ Show the drill deck and triage clock. These are deliberately practical: what to 
 
 Show the final sheet. This is the student-facing artifact: the last page before the exam. Mention OpenBMB MiniCPM as the default model path and local-first fallback.
 Call out the first-action line, proof-before-stopping line, and the "Do not do" guardrail; those are what keep a panicking student from restarting the spiral.
-Show the demo receipt as the judge-readable before/after: confidence, panic pattern, first move, leak to patch, and proof of work.
+Show the study receipt as the before/after checkpoint: confidence, panic pattern, first move, leak to patch, and proof of work.
 End on the copyable field-note prompt: it is how we capture whether a real student actually used the rescue and what changed.
 
 If asked about sponsor proof, use the collapsed build-proof section after the product demo. Do not lead with it.

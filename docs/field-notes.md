@@ -6,7 +6,9 @@ Project: Exam Panic Rescue
 
 Students often hit a point before an exam where they are not really studying anymore. They are rereading everything, switching topics, panicking, and losing the last useful hours.
 
-The first target workflow is a student who has a test soon and can only describe the situation as a messy panic dump: what they half-know, what scares them, and how much time is left. The app now names the panic pattern, gives one proof target, keeps the final artifact focused on stopping the spiral, produces a demo receipt for the before/after, and emits a copyable field-note prompt so real-user feedback can be captured after the study block.
+The first target workflow is a student who has a test soon and can only describe the situation as a messy panic dump: what they half-know, what scares them, and how much time is left. The app now names the panic pattern, gives one proof target, keeps the final artifact focused on stopping the spiral, produces a study receipt for the before/after, and emits a copyable field-note prompt so real-user feedback can be captured after the study block.
+
+Current product stance from user feedback on 2026-06-06: optimize for students like us, practical usefulness, and a live product feel. The demo should prove the product, not become the product. The visible tone should be humble and honest, while the build process quietly does the sponsor/evidence work needed to win.
 
 ## Hackathon Fit
 
@@ -16,7 +18,7 @@ The first target workflow is a student who has a test soon and can only describe
 - Sponsor target: OpenAI Codex track through Codex-built repo history and README linkage.
 - OpenBMB fit: the default small-model path uses `openbmb/MiniCPM4.1-8B` for plan generation when available.
 - NVIDIA/local fit: the app has no cloud API dependency and can run with local or Space hardware, with optional `llama.cpp` support. TinyLlama and official OpenBMB MiniCPM4 0.5B GGUF smokes passed through the CLI path; final Llama Champion claim still depends on showing that route in final demo/materials.
-- Runtime honesty: CPU-only Hugging Face Spaces use the deterministic fallback by default; OpenBMB MiniCPM or GGUF routes should be shown only after a matching model-backed smoke.
+- Runtime honesty: CPU-only Hugging Face Spaces use the deterministic fallback by default; the app is ZeroGPU-ready through `@spaces.GPU(duration=120)`, but OpenBMB MiniCPM or GGUF routes should be shown only after a matching model-backed smoke.
 
 ## What Changed During Build
 
@@ -29,7 +31,7 @@ The first target workflow is a student who has a test soon and can only describe
 ## Bonus Quests
 
 - Off-Brand: custom Gradio Blocks layout and CSS.
-- Off-Brand evidence: the app includes built-in panic cases, a demo receipt, collapsed claim proof, and a final-sheet artifact with first-action, proof-before-stopping, and "Do not do" guardrails.
+- Off-Brand evidence: the app includes built-in student scenarios, a study receipt, collapsed claim proof, and a final-sheet artifact with first-action, proof-before-stopping, and "Do not do" guardrails.
 - Sharing is Caring: publish the Codex trace or build log before final submission.
 - Field Notes: this document becomes the concise public report, backed by the app's copyable field-note prompt.
 - Well-Tuned runway: `data/readiness_cases.jsonl` is a small public eval seed, but not a fine-tune claim.
@@ -40,10 +42,10 @@ The first target workflow is a student who has a test soon and can only describe
 
 - Local unit test: `python -m unittest discover -s tests`
 - Demo case smoke: `python scripts/readiness_check.py`
-- The same biology, physics, history, and math smoke cases are exposed in the app under "Try another panic case".
+- The same biology, physics, history, and math smoke cases are exposed in the app under "Try another student scenario".
 - The same cases are published as JSONL at `data/readiness_cases.jsonl` so reviewers can inspect the tiny eval set.
 - Local app smoke: `USE_LOCAL_MODEL=0 python app.py`
-- Space smoke: run once and confirm the model note is truthful: either it reports `openbmb/MiniCPM4.1-8B` on capable hardware or a CPU-only fallback note on free/basic hardware.
+- Space smoke: run once and confirm the model note is truthful: either it reports `openbmb/MiniCPM4.1-8B` on CUDA/ZeroGPU-capable hardware or a CPU-only fallback note on free/basic hardware.
 
 Latest verified checks on 2026-06-05:
 
@@ -59,5 +61,5 @@ Latest verified checks on 2026-06-05:
 
 - Public GitHub repo contains Codex-attributed commits.
 - Space README links to the public GitHub repo.
-- Short demo video shows one panic dump becoming a rescue plan, drill deck, triage clock, panic-pattern readout, proof target, final sheet, demo receipt, and field-note prompt.
+- Short demo video shows one panic dump becoming a rescue plan, drill deck, triage clock, panic-pattern readout, proof target, final sheet, study receipt, and field-note prompt.
 - Social post links to the Space and names the Backyard AI track.

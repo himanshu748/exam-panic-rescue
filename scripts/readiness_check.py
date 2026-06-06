@@ -40,7 +40,7 @@ def score_case(case: dict[str, object]) -> tuple[int, list[str]]:
         "five drills": plan.drill_markdown.count("- ") >= 5,
         "triage boundary": "verify facts with your class notes" in plan.triage_markdown.lower(),
         "final sheet": "final sheet" in plan.final_sheet_html.lower(),
-        "demo receipt": "demo receipt" in plan.demo_receipt_markdown.lower(),
+        "study receipt": "study receipt" in plan.demo_receipt_markdown.lower(),
         "field note": "field note prompt" in plan.field_note_markdown.lower(),
         "specific terms": all(str(term).lower() in combined for term in case["must_include"]),
     }
