@@ -786,6 +786,25 @@ def load_case(index: int):
     )
 
 
+def load_biology_case():
+    return load_case(0)
+
+
+def load_physics_case():
+    return load_case(1)
+
+
+def load_history_case():
+    return load_case(2)
+
+
+def load_math_case():
+    return load_case(3)
+
+
+CASE_LOADERS = [load_biology_case, load_physics_case, load_history_case, load_math_case]
+
+
 with gr.Blocks(title="Exam Panic Rescue") as demo:
     gr.HTML(f"<style>{CSS}</style>", container=False)
     with gr.Column(elem_classes=["app-shell"]):
@@ -948,9 +967,9 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
         gr.HTML(CLAIM_STATUS_HTML, container=False)
     run.click(generate, inputs=inputs, outputs=outputs, scroll_to_output=True)
     panic_note.submit(generate, inputs=inputs, outputs=outputs, scroll_to_output=True)
-    example.click(load_example, outputs=inputs)
+    example.click(load_example, outputs=inputs, queue=False)
     for case_button, case_index in case_buttons:
-        case_button.click(lambda index=case_index: load_case(index), outputs=inputs)
+        case_button.click(CASE_LOADERS[case_index], outputs=inputs, queue=False)
 
 
 if __name__ == "__main__":
