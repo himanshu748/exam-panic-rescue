@@ -28,7 +28,7 @@ Settings:
 - Confidence: `2`
 - Minutes left: `120`
 
-Fast path in the UI: use the loaded physics case or click the built-in `physics numericals` scenario under "Try another student scenario", then run the rescue.
+Fast path in the UI: click the sample `physics numericals` scenario under "Try a sample scenario", explain that samples are only for review, then run the rescue. For the final public video, replace the sample with a real student panic note if available.
 
 ## Talk Track
 

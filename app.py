@@ -707,11 +707,11 @@ HERO_HTML = """
 CLAIM_STATUS_HTML = """
 <details class="proof-details">
   <summary>Hackathon build proof and claim status</summary>
-  <p><strong>How to review fast:</strong> load a sample scenario, build the rescue packet, show the proof target/final sheet, then copy the field note. The product path stays the same for a real student.</p>
+  <p><strong>How to review fast:</strong> load a sample scenario only to understand the flow, replace it with real exam details when using the product, build the rescue packet, then check the proof target/final sheet and runtime note.</p>
   <section class="claim-strip" aria-label="Public claim status">
     <div class="claim-card">
       <b>Claim now</b>
-      <span>Backyard AI workflow, live OpenBMB MiniCPM on ZeroGPU, Off-Brand Gradio UI, and local-first fallback.</span>
+      <span>Backyard AI workflow, live OpenBMB MiniCPM on ZeroGPU, Off-Brand Gradio UI, and no-cloud-API default path.</span>
     </div>
     <div class="claim-card">
       <b>Claim after smoke</b>
@@ -793,8 +793,8 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
         gr.HTML(
             """
 <section class="demo-status" aria-label="Study status">
-  <div class="status-card"><b>Start here</b><span>Use the loaded physics panic or replace it with your own exam, notes, and time left.</span></div>
-  <div class="status-card"><b>ZeroGPU live</b><span>MiniCPM runs on the Space; CPU fallback remains if hardware is switched back.</span></div>
+  <div class="status-card"><b>Start here</b><span>Paste your real exam details first. Samples are only there to show the flow.</span></div>
+  <div class="status-card"><b>ZeroGPU live</b><span>MiniCPM runs only when you build a packet; CPU fallback remains if hardware is switched back.</span></div>
   <div class="status-card"><b>Low-time rule</b><span>Do not learn everything. Choose marks to protect, drill one leak, then make the final sheet.</span></div>
 </section>
 """,
@@ -817,7 +817,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     """
 <div class="section-title">
   <h2>Build your rescue packet</h2>
-  <p>Use the loaded physics case as a template, or replace it with your real exam. The packet is meant to be followed in order.</p>
+  <p>Paste a real panic dump, actual topics, and time left. If you load a sample, treat it as a template and replace it before studying.</p>
 </div>
 """,
                     container=False,
@@ -876,8 +876,8 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                 with gr.Column(elem_classes=["demo-cases"]):
                     gr.HTML(
                         """
-<h2>Try another student scenario</h2>
-<p>Use these to see how the rescue changes for short answers, numericals, long answers, and MCQ traps.</p>
+<h2>Try a sample scenario</h2>
+<p>Samples do not claim real-user data. They only show how the rescue changes for short answers, numericals, long answers, and MCQ traps.</p>
 """,
                         container=False,
                     )
@@ -906,14 +906,35 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
 """,
                     container=False,
                 )
-                rescue_output = gr.Markdown(elem_classes=["panel"])
-                drill_output = gr.Markdown(elem_classes=["panel"])
-                triage_output = gr.Markdown(elem_classes=["panel"])
-                final_sheet_output = gr.HTML(elem_classes=["panel"])
-                demo_receipt_output = gr.Markdown(elem_classes=["panel"])
-                field_note_output = gr.Markdown(elem_classes=["panel"])
+                rescue_output = gr.Markdown(
+                    value="### Ready when you are\n\nPaste the real exam details, then click **Build my rescue packet**. Nothing is generated until you ask for it.",
+                    elem_classes=["panel"],
+                )
+                drill_output = gr.Markdown(
+                    value="### Drill deck\n\nThe drills will appear here after generation.",
+                    elem_classes=["panel"],
+                )
+                triage_output = gr.Markdown(
+                    value="### Triage clock\n\nThe time blocks will appear here after generation.",
+                    elem_classes=["panel"],
+                )
+                final_sheet_output = gr.HTML(
+                    value='<div class="final-sheet"><h3>Final sheet</h3><p>Build a packet to create the one-page sheet to read before the exam.</p></div>',
+                    elem_classes=["panel"],
+                )
+                demo_receipt_output = gr.Markdown(
+                    value="### Study receipt\n\nA short before/after receipt will appear here after generation.",
+                    elem_classes=["panel"],
+                )
+                field_note_output = gr.Markdown(
+                    value="### Field note prompt\n\nAfter a real study block, use this section to capture honest feedback. Do not invent results.",
+                    elem_classes=["panel"],
+                )
                 gr.HTML('<div class="runtime-label">Runtime note</div>', container=False)
-                model_note = gr.Markdown(elem_id="model-note")
+                model_note = gr.Markdown(
+                    value="No generation yet. This Space calls OpenBMB MiniCPM on ZeroGPU only after you build a packet.",
+                    elem_id="model-note",
+                )
 
         outputs = [
             rescue_output,
@@ -927,15 +948,9 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
         gr.HTML(CLAIM_STATUS_HTML, container=False)
     run.click(generate, inputs=inputs, outputs=outputs, scroll_to_output=True)
     panic_note.submit(generate, inputs=inputs, outputs=outputs, scroll_to_output=True)
-    example.click(load_example, outputs=inputs).then(generate, inputs=inputs, outputs=outputs, scroll_to_output=True)
+    example.click(load_example, outputs=inputs)
     for case_button, case_index in case_buttons:
-        case_button.click(lambda index=case_index: load_case(index), outputs=inputs).then(
-            generate,
-            inputs=inputs,
-            outputs=outputs,
-            scroll_to_output=True,
-        )
-    demo.load(generate, inputs=inputs, outputs=outputs)
+        case_button.click(lambda index=case_index: load_case(index), outputs=inputs)
 
 
 if __name__ == "__main__":

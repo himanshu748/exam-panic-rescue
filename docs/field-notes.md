@@ -31,7 +31,7 @@ Current product stance from user feedback on 2026-06-06: optimize for students l
 ## Bonus Quests
 
 - Off-Brand: custom Gradio Blocks layout and CSS.
-- Off-Brand evidence: the app includes built-in student scenarios, a study receipt, collapsed claim proof, and a final-sheet artifact with first-action, proof-before-stopping, and "Do not do" guardrails.
+- Off-Brand evidence: the app includes clearly labeled sample scenarios, a study receipt, collapsed claim proof, and a final-sheet artifact with first-action, proof-before-stopping, and "Do not do" guardrails.
 - Sharing is Caring: publish the Codex trace or build log before final submission.
 - Field Notes: this document becomes the concise public report, backed by the app's copyable field-note prompt.
 - Well-Tuned runway: `data/readiness_cases.jsonl` is a small public eval seed, but not a fine-tune claim.
@@ -42,8 +42,8 @@ Current product stance from user feedback on 2026-06-06: optimize for students l
 
 - Local unit test: `python -m unittest discover -s tests`
 - Demo case smoke: `python scripts/readiness_check.py`
-- The same biology, physics, history, and math smoke cases are exposed in the app under "Try another student scenario".
-- The same cases are published as JSONL at `data/readiness_cases.jsonl` so reviewers can inspect the tiny eval set.
+- The same biology, physics, history, and math smoke cases are exposed in the app under "Try a sample scenario".
+- The same cases are published as JSONL at `data/readiness_cases.jsonl` so reviewers can inspect the tiny eval seed. They are not presented as real-user outcomes.
 - Local app smoke: `USE_LOCAL_MODEL=0 python app.py`
 - Space smoke: run once and confirm the model note is truthful: either it reports `openbmb/MiniCPM4.1-8B` on CUDA/ZeroGPU-capable hardware or a CPU-only fallback note on free/basic hardware.
 

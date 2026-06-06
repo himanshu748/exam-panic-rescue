@@ -12,7 +12,7 @@ Exam Panic Rescue turns a student's last-minute panic dump into a survival plan,
 
 The first target workflow is a student who has an exam soon, feels stuck, and cannot decide what to study first. The app is intentionally narrow: one stressed student, one exam, one time box, one final sheet.
 
-The app includes four built-in student scenarios for quick evaluation and self-try: biology definitions, physics numericals, history long answers, and math MCQ traps. These are the same cases used by the local readiness smoke test and published as [data/readiness_cases.jsonl](data/readiness_cases.jsonl). Each run names the likely panic pattern, gives the student one proof target before they stop studying, produces a short study receipt, and emits a copyable field-note prompt for real-user follow-up.
+The app includes four clearly labeled sample scenarios for quick evaluation: biology definitions, physics numericals, history long answers, and math MCQ traps. They are not claimed as real-user data; they are the same public readiness cases used by the local smoke test and published as [data/readiness_cases.jsonl](data/readiness_cases.jsonl). A real student should replace the sample with their actual exam, topics, and time left before generating a packet.
 
 The public UI keeps the student workflow first and puts build-proof/claim status in a small collapsible section so sponsor evidence does not distract from the product.
 
@@ -44,7 +44,7 @@ Hardware note: the hackathon rule allows models up to `<=32B`, but the live Grad
 - NVIDIA/local angle: no cloud API dependency; the app can run locally or on Space hardware, with an optional `llama.cpp` path when a GGUF model is available.
 - Cohere note: supporting sponsor only for now; an optional `USE_COHERE_REVIEW=1` hook exists, but the main demo stays local-first and does not claim Cohere usage.
 - JetBrains angle: documented PyCharm/JetBrains run workflow for app, tests, and readiness checks.
-- Off-Brand angle: custom Gradio layout, built-in judge cases, and a printable final-sheet artifact with a first action and a "do not do" guardrail.
+- Off-Brand angle: custom Gradio layout, clearly labeled sample cases, and a printable final-sheet artifact with a first action and a "do not do" guardrail.
 
 See [docs/sponsor-coverage.md](docs/sponsor-coverage.md) for the current sponsor/bonus matrix. Modal is intentionally not part of the product target.
 

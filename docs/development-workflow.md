@@ -47,7 +47,7 @@ Verified live MiniCPM smoke on 2026-06-06:
 
 1. Space hardware was switched from `cpu-basic` to ZeroGPU (`zero-a10g`).
 2. Space variables were set: `USE_LOCAL_MODEL=1` and `PRELOAD_TRANSFORMER_MODEL=1`.
-3. A built-in physics student scenario generated successfully.
+3. A sample physics scenario loads successfully, then generates only after the explicit build action.
 4. The model note returned exactly `Generated with openbmb/MiniCPM4.1-8B on CUDA/ZeroGPU.`
 5. The sanitizer check confirmed no `<think>` tags were present in the returned packet.
 
