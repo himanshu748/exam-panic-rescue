@@ -5,3 +5,25 @@ __pycache__/
 .DS_Store
 *.log
 exam-panic-rescue-*.png
+# Exclude internal/private hackathon strategy documents
+AGENTS.md
+docs/bounty-strategy.md
+docs/codex-judge-gate.md
+docs/current-snapshot.md
+docs/daily-checklist.md
+docs/discord-intro-draft.md
+docs/final-submission-audit.md
+docs/final-submission-package-draft.md
+docs/github-codex-evidence-checklist.md
+docs/idea-rubric.md
+docs/next-actions.md
+docs/project-plan.md
+docs/social-post-draft.md
+docs/staging-space-checklist.md
+# Exclude internal verification scripts
+scripts/preflight_check.py
+scripts/codex_evidence_check.py
+scripts/llama_runtime_check.py
+scripts/space_package_audit.py
+scripts/staging_check.py
+scripts/space_smoke_check.py
