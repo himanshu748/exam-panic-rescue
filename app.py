@@ -691,11 +691,11 @@ CLAIM_STATUS_HTML = """
   <section class="claim-strip" aria-label="Public claim status">
     <div class="claim-card">
       <b>Claim now</b>
-      <span>Backyard AI workflow, OpenBMB MiniCPM default target, Off-Brand Gradio UI, and local-first fallback.</span>
+      <span>Backyard AI workflow, live OpenBMB MiniCPM on ZeroGPU, Off-Brand Gradio UI, and local-first fallback.</span>
     </div>
     <div class="claim-card">
       <b>Claim after smoke</b>
-      <span>MiniCPM generation on Space, Llama Champion, and final submission.</span>
+      <span>Llama Champion and final submission after their specific public evidence is ready.</span>
     </div>
     <div class="claim-card">
       <b>Do not claim yet</b>
@@ -704,7 +704,7 @@ CLAIM_STATUS_HTML = """
   </section>
   <section class="model-budget" aria-label="Runtime claim status">
     <div class="budget-card"><b>Model budget</b><span>MiniCPM4.1-8B fits the <=32B rule; hardware is the real gate.</span></div>
-    <div class="budget-card"><b>ZeroGPU-ready</b><span>40 min/day lets us smoke MiniCPM without turning the whole product into a hardware gamble.</span></div>
+    <div class="budget-card"><b>ZeroGPU verified</b><span>Live Space smoke generated with MiniCPM on CUDA/ZeroGPU; keep calls focused inside quota.</span></div>
     <div class="budget-card"><b>Default target</b><span>OpenBMB MiniCPM stays the submission-aligned model path when hardware can run it.</span></div>
   </section>
 </details>
@@ -774,7 +774,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
             """
 <section class="demo-status" aria-label="Study status">
   <div class="status-card"><b>Start here</b><span>Use the loaded physics panic or replace it with your own exam, notes, and time left.</span></div>
-  <div class="status-card"><b>Space-safe</b><span>CPU-basic uses the deterministic fallback; ZeroGPU can test MiniCPM inside quota.</span></div>
+  <div class="status-card"><b>ZeroGPU live</b><span>MiniCPM runs on the Space; CPU fallback remains if hardware is switched back.</span></div>
   <div class="status-card"><b>Low-time rule</b><span>Do not learn everything. Choose marks to protect, drill one leak, then make the final sheet.</span></div>
 </section>
 """,

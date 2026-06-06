@@ -24,7 +24,7 @@ Public build notes and demo prep are drafted in [docs/codex-build-trace.md](docs
 
 Public GitHub evidence repo: https://github.com/himanshu748/exam-panic-rescue
 
-Hardware note: the hackathon rule allows models up to `<=32B`, but the live Gradio Space hardware still determines what is practical. The current public Space is safe on `cpu-basic`; the app is also prepared for Hugging Face ZeroGPU through the `spaces` package and `@spaces.GPU(duration=120)`. The final MiniCPM live-generation claim should only be made after the Space hardware is switched to ZeroGPU, `USE_LOCAL_MODEL=1` is set, and a manual model-backed smoke is captured.
+Hardware note: the hackathon rule allows models up to `<=32B`, but the live Gradio Space hardware still determines what is practical. The public Space is now running on Hugging Face ZeroGPU with `USE_LOCAL_MODEL=1` and `PRELOAD_TRANSFORMER_MODEL=1`. A live smoke on 2026-06-06 generated with `openbmb/MiniCPM4.1-8B` and returned `Generated with openbmb/MiniCPM4.1-8B on CUDA/ZeroGPU.` CPU fallback remains in the code if hardware is switched back.
 
 ## How A Student Uses It When Time Is Low
 
@@ -40,7 +40,7 @@ Hardware note: the hackathon rule allows models up to `<=32B`, but the live Grad
 - Build surface: Gradio `Blocks` app hosted as a Hugging Face Space.
 - Model rule: the default model target is `openbmb/MiniCPM4.1-8B`, under the `<=32B` limit.
 - OpenAI Codex track: built with Codex; public GitHub repo is linked from this Space README.
-- OpenBMB angle: the default model path targets `openbmb/MiniCPM4.1-8B`, with a ZeroGPU-ready Gradio handler for the live Space path.
+- OpenBMB angle: the default model path targets `openbmb/MiniCPM4.1-8B`, with a verified ZeroGPU Gradio handler for the live Space path.
 - NVIDIA/local angle: no cloud API dependency; the app can run locally or on Space hardware, with an optional `llama.cpp` path when a GGUF model is available.
 - Cohere note: supporting sponsor only for now; an optional `USE_COHERE_REVIEW=1` hook exists, but the main demo stays local-first and does not claim Cohere usage.
 - JetBrains angle: documented PyCharm/JetBrains run workflow for app, tests, and readiness checks.
@@ -70,7 +70,7 @@ Set `USE_LOCAL_MODEL=1` to try the OpenBMB/MiniCPM model path after the hardware
 ZeroGPU Space route:
 
 ```bash
-# In Hugging Face Space settings:
+# Current live Space settings:
 # 1. Hardware: ZeroGPU
 # 2. Variable: USE_LOCAL_MODEL=1
 # 3. Variable: PRELOAD_TRANSFORMER_MODEL=1

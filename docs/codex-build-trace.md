@@ -70,6 +70,7 @@ The app stays intentionally narrow: one stressed student, one exam, one time box
 15. Removed visible Gemma/comparison-model copy and focused the public app/video story on OpenBMB MiniCPM, with stronger typography and contrast for screenshot/video readability.
 16. Added a ZeroGPU-ready Gradio path using `spaces` plus `@spaces.GPU(duration=120)` so the Space can smoke MiniCPM within the available quota after hardware is switched from `cpu-basic`.
 17. Shifted visible UI language from judge-demo framing to a student-first product framing: build your rescue packet, follow the low-time learning packet, and keep hackathon proof collapsed.
+18. Switched the live Space to ZeroGPU, set `USE_LOCAL_MODEL=1` and `PRELOAD_TRANSFORMER_MODEL=1`, and verified a live MiniCPM response. A follow-up sanitizer removed `<think>` leakage before the final ZeroGPU smoke was accepted.
 
 ## Current Evidence
 
@@ -85,14 +86,15 @@ The app stays intentionally narrow: one stressed student, one exam, one time box
 - Live Space runtime smoke passed root HTTP `200`, Gradio `/config` HTTP `200`, required public markers, and no obvious private/internal markers.
 - Optional `llama.cpp` CLI app path produced non-fallback model notes with TinyLlama GGUF and an official OpenBMB MiniCPM4 0.5B GGUF local-file route.
 - CPU-only Hugging Face Space runtime now defaults to deterministic fallback unless `USE_LOCAL_MODEL=1` is explicitly set after hardware is upgraded or a small GGUF path is configured.
-- Hugging Face Space API check on 2026-06-06 still reports current/requested hardware as `cpu-basic`; ZeroGPU code support is ready, but the model-backed Space run is not yet claimed.
+- Hugging Face Space API check on 2026-06-06 reports current/requested hardware as `zero-a10g`.
+- Live ZeroGPU generation smoke on 2026-06-06 returned `Generated with openbmb/MiniCPM4.1-8B on CUDA/ZeroGPU.`, produced a study receipt, and confirmed no `<think>` tags in the returned packet.
 - Recent Codex-attributed commits published the UI and hardware-honesty passes to GitHub and the Hugging Face Space.
 - Latest local visual QA covered desktop `1280px` and mobile `390px` layouts.
 - Local HyperFrames demo draft rendered at `/private/tmp/exam-panic-rescue-hyperframes-demo.mp4`; MP4 metadata is `68.0s`, `1920x1080`, H.264, `30fps`, about `18.2MB`. The public demo link is still not final submission evidence until uploaded and approved.
 
 ## Open Work Before Final Submission
 
-- MiniCPM generation on the live Space still needs a manual ZeroGPU demo run; the Space smoke currently verifies runtime/config/UI markers.
+- MiniCPM generation on the live Space is verified on ZeroGPU; preserve quota and re-test only before recording or submission.
 - llama.cpp path is implemented and documented; TinyLlama GGUF and official OpenBMB MiniCPM4 0.5B GGUF local smokes passed. Final Llama Champion claim still needs the demo/materials to explicitly show that route.
 - Cohere review hook is implemented but intentionally not targeted unless official Cohere-specific criteria appear.
 

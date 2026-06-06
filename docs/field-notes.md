@@ -18,7 +18,7 @@ Current product stance from user feedback on 2026-06-06: optimize for students l
 - Sponsor target: OpenAI Codex track through Codex-built repo history and README linkage.
 - OpenBMB fit: the default small-model path uses `openbmb/MiniCPM4.1-8B` for plan generation when available.
 - NVIDIA/local fit: the app has no cloud API dependency and can run with local or Space hardware, with optional `llama.cpp` support. TinyLlama and official OpenBMB MiniCPM4 0.5B GGUF smokes passed through the CLI path; final Llama Champion claim still depends on showing that route in final demo/materials.
-- Runtime honesty: CPU-only Hugging Face Spaces use the deterministic fallback by default; the app is ZeroGPU-ready through `@spaces.GPU(duration=120)`, but OpenBMB MiniCPM or GGUF routes should be shown only after a matching model-backed smoke.
+- Runtime honesty: CPU-only Hugging Face Spaces use the deterministic fallback by default; the current live Space is on ZeroGPU and a 2026-06-06 model-backed smoke returned `Generated with openbmb/MiniCPM4.1-8B on CUDA/ZeroGPU.` GGUF routes should still be shown only after a matching llama.cpp smoke.
 
 ## What Changed During Build
 

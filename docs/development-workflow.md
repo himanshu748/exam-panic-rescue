@@ -43,13 +43,13 @@ On Hugging Face CPU-only hardware, the app defaults to the deterministic fallbac
 
 Official ZeroGPU docs require Gradio, the `spaces` package, and `@spaces.GPU` around GPU-dependent functions. The app now decorates the main generation handler with `@spaces.GPU(duration=120)`, while keeping the local fallback decorator for non-HF runs.
 
-Before claiming live MiniCPM generation on the Space:
+Verified live MiniCPM smoke on 2026-06-06:
 
-1. In Space settings, switch hardware from `cpu-basic` to ZeroGPU.
-2. Set Space variable `USE_LOCAL_MODEL=1`.
-3. Set Space variable `PRELOAD_TRANSFORMER_MODEL=1` for the model-backed smoke so HF can place the model during startup instead of lazy-moving it inside a request.
-4. Run one built-in student scenario and confirm the model note says `Generated with openbmb/MiniCPM4.1-8B on CUDA/ZeroGPU.`
-5. If it falls back or queues out, keep the public claim as ZeroGPU-ready rather than model-backed.
+1. Space hardware was switched from `cpu-basic` to ZeroGPU (`zero-a10g`).
+2. Space variables were set: `USE_LOCAL_MODEL=1` and `PRELOAD_TRANSFORMER_MODEL=1`.
+3. A built-in physics student scenario generated successfully.
+4. The model note returned exactly `Generated with openbmb/MiniCPM4.1-8B on CUDA/ZeroGPU.`
+5. The sanitizer check confirmed no `<think>` tags were present in the returned packet.
 
 ## JetBrains/PyCharm Setup
 
