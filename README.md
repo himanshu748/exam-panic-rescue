@@ -41,7 +41,7 @@ Hardware note: the hackathon rule allows models up to `<=32B`, but the live Grad
 - Model rule: the default model target is `openbmb/MiniCPM4.1-8B`, under the `<=32B` limit.
 - OpenAI Codex track: built with Codex; public GitHub repo is linked from this Space README.
 - OpenBMB angle: the default model path targets `openbmb/MiniCPM4.1-8B`, with a verified ZeroGPU Gradio handler for the live Space path.
-- NVIDIA/local angle: no cloud API dependency; the app can run locally or on Space hardware, with an optional `llama.cpp` path when a GGUF model is available.
+- NVIDIA/Nemotron note: not a submitted claim right now because the live default is OpenBMB MiniCPM, not Nemotron. The useful overlap is the no-cloud-API/local-runtime design and optional `llama.cpp` path.
 - Cohere note: supporting sponsor only for now; an optional `USE_COHERE_REVIEW=1` hook exists, but the main demo stays local-first and does not claim Cohere usage.
 - JetBrains angle: documented PyCharm/JetBrains run workflow for app, tests, and readiness checks.
 - Off-Brand angle: custom Gradio layout, clearly labeled sample cases, and a printable final-sheet artifact with a first action and a "do not do" guardrail.

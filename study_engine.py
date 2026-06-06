@@ -275,11 +275,15 @@ def generated_text_from_llama_cpp_result(result) -> str:
 
 
 def strip_hidden_reasoning(text: str) -> str:
-    cleaned = re.sub(r"<think>.*?</think>", " ", text or "", flags=re.I | re.S)
+    cleaned = (text or "").replace("\\r\\n", "\n").replace("\\n", "\n").replace("\\t", " ")
+    cleaned = re.sub(r"<think>.*?</think>", " ", cleaned, flags=re.I | re.S)
     if re.search(r"<think\b", cleaned, flags=re.I):
         return ""
     cleaned = re.sub(r"</think>", " ", cleaned, flags=re.I)
-    return compact(cleaned)
+    cleaned = cleaned.replace("\r\n", "\n").replace("\r", "\n")
+    cleaned = "\n".join(line.rstrip() for line in cleaned.splitlines())
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip()
 
 
 def int_env(name: str, default: int) -> int:

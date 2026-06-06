@@ -45,7 +45,7 @@ The app stays intentionally narrow: one stressed student, one exam, one time box
 - Hugging Face: Gradio Space under `build-small-hackathon`.
 - OpenAI Codex: Codex-assisted app, tests, docs, and iteration trace; final submission needs public GitHub evidence.
 - OpenBMB: default model target is `openbmb/MiniCPM4.1-8B`.
-- NVIDIA: local-first/no-cloud default with small-model/GPU-friendly framing.
+- NVIDIA: do not claim Nemotron unless a real Nemotron path is added and smoked; keep the useful no-cloud-API/local-runtime design.
 - Cohere: supporting sponsor only for now; optional quality-review hook exists but is disabled by default and not a final claim target unless criteria appear.
 - JetBrains: reproducible PyCharm/JetBrains workflow docs.
 - Black Forest Labs: visual/delight support through the final-sheet artifact.

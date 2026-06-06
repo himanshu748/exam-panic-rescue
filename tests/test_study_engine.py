@@ -211,6 +211,24 @@ class StudyEngineTest(unittest.TestCase):
 
         self.assertEqual(text, "5 practice questions: Start.")
 
+    def test_preserves_model_markdown_and_unescapes_newlines(self):
+        text = generated_text_from_pipeline_result(
+            [
+                {
+                    "generated_text": [
+                        {
+                            "role": "assistant",
+                            "content": "5 practice questions:\\n- Explain precision vs recall.\\n\\n4-step survival plan:\\n1. Start with the confusion matrix.",
+                        }
+                    ]
+                }
+            ]
+        )
+
+        self.assertNotIn("\\n", text)
+        self.assertIn("5 practice questions:\n- Explain precision vs recall.", text)
+        self.assertIn("\n\n4-step survival plan:\n1. Start with the confusion matrix.", text)
+
     def test_drops_incomplete_think_tag_model_output(self):
         text = generated_text_from_pipeline_result(
             [{"generated_text": [{"role": "assistant", "content": "<think>private reasoning that never closes"}]}]
@@ -224,7 +242,7 @@ class StudyEngineTest(unittest.TestCase):
             prompt="student panic",
         )
 
-        self.assertEqual(text, "1. Reset. 2. Drill.")
+        self.assertEqual(text, "1. Reset.\n2. Drill.")
 
 
 if __name__ == "__main__":
