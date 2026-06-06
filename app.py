@@ -711,15 +711,15 @@ CLAIM_STATUS_HTML = """
   <section class="claim-strip" aria-label="Public claim status">
     <div class="claim-card">
       <b>Claim now</b>
-      <span>Backyard AI workflow, live OpenBMB MiniCPM on ZeroGPU, Off-Brand Gradio UI, and no-cloud-API default path.</span>
+      <span>Backyard AI main track, OpenBMB MiniCPM on ZeroGPU, OpenAI Codex evidence, and Off-Brand custom UI.</span>
     </div>
     <div class="claim-card">
-      <b>Claim after smoke</b>
-      <span>Llama Champion and final submission after their specific public evidence is ready.</span>
+      <b>Claim after links</b>
+      <span>Best Demo, Community Choice, Field Notes, and Sharing-style build trace once the public video/social/report links exist.</span>
     </div>
     <div class="claim-card">
       <b>Do not claim yet</b>
-      <span>Well-Tuned or any untested runtime prize until real evidence exists.</span>
+      <span>Modal, Nemotron, Tiny Titan, fine-tuning, or Best Agent unless matching evidence exists.</span>
     </div>
   </section>
   <section class="model-budget" aria-label="Runtime claim status">

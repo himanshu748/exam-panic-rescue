@@ -1,8 +1,8 @@
-# llama.cpp Runtime Plan
+# Optional llama.cpp Runtime Plan
 
 Updated: 2026-06-05
 
-Purpose: make the Llama Champion path concrete without forcing heavy runtime dependencies into the default Space.
+Purpose: keep a real local GGUF runtime path available without forcing heavy runtime dependencies into the default Space. This is not a current submitted award claim unless the final rules/materials require and show a matching `llama.cpp` route.
 
 ## Source
 
@@ -107,16 +107,16 @@ llama-server -hf openbmb/MiniCPM4.1-8B-GGUF:Q4_K_M
 
 ## Claim Rule
 
-Do not claim Llama Champion until one of these is true:
+Do not claim any `llama.cpp`-specific award or badge until one of these is true:
 
 - `USE_LLAMA_CPP=1 python3 app.py` loads a GGUF path and produces a non-fallback model note.
 - `USE_LLAMA_CPP=1 LLAMA_CPP_BACKEND=cli python3 app.py` produces a non-fallback model note that says `Generated locally with llama.cpp CLI`.
 - Direct `llama-cli` against an OpenBMB MiniCPM GGUF file produces a usable response and the demo can explain how the app maps to that runtime.
 - Internal check passes: `python3 scripts/llama_runtime_check.py`.
 
-The internal check proves runtime/config readiness. It does not replace the non-fallback MiniCPM GGUF generation smoke required for a final Llama Champion claim.
+The internal check proves runtime/config readiness. It does not replace the non-fallback MiniCPM GGUF generation smoke required for any final `llama.cpp`-specific claim.
 
-The local OpenBMB MiniCPM4 0.5B GGUF smoke now proves the app can use an OpenBMB MiniCPM-family model through `llama.cpp`. Treat the final Llama Champion submission claim as conditional until the final demo/materials explicitly use or show this route.
+The local OpenBMB MiniCPM4 0.5B GGUF smoke now proves the app can use an OpenBMB MiniCPM-family model through `llama.cpp`. Treat any final `llama.cpp` submission claim as conditional until the final demo/materials explicitly use or show this route.
 
 ## Current Local Status
 

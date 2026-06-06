@@ -97,7 +97,7 @@ The app stays intentionally narrow: one stressed student, one exam, one time box
 ## Open Work Before Final Submission
 
 - MiniCPM generation on the live Space is verified on ZeroGPU; preserve quota and re-test only before recording or submission.
-- llama.cpp path is implemented and documented; TinyLlama GGUF and official OpenBMB MiniCPM4 0.5B GGUF local smokes passed. Final Llama Champion claim still needs the demo/materials to explicitly show that route.
+- llama.cpp path is implemented and documented; TinyLlama GGUF and official OpenBMB MiniCPM4 0.5B GGUF local smokes passed. Any final `llama.cpp`-specific claim still needs the demo/materials to explicitly show that route.
 - Cohere review hook is implemented but intentionally not targeted unless official Cohere-specific criteria appear.
 
 ## Public Trace Rule

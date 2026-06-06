@@ -45,6 +45,8 @@ Hardware note: the hackathon rule allows models up to `<=32B`, but the live Grad
 - Cohere note: supporting sponsor only for now; an optional `USE_COHERE_REVIEW=1` hook exists, but the main demo stays local-first and does not claim Cohere usage.
 - JetBrains angle: documented PyCharm/JetBrains run workflow for app, tests, and readiness checks.
 - Off-Brand angle: custom Gradio layout, clearly labeled sample cases, and a printable final-sheet artifact with a first action and a "do not do" guardrail.
+- Best Demo / Community Choice angle: the app now avoids automatic generation, so the live product path is easier to understand in a short video or social post.
+- Not claimed: Modal Awards, NVIDIA Nemotron Quest, Tiny Titan, Well-Tuned, or Best Agent unless matching evidence is added.
 
 See [docs/sponsor-coverage.md](docs/sponsor-coverage.md) for the current sponsor/bonus matrix. Modal is intentionally not part of the product target.
 
@@ -127,4 +129,4 @@ The full preflight includes external evidence checks, so it will continue to rep
 
 See [docs/field-notes.md](docs/field-notes.md) for the public build report draft.
 See [docs/development-workflow.md](docs/development-workflow.md) for local and JetBrains/PyCharm run workflows.
-See [docs/llama-cpp-runtime.md](docs/llama-cpp-runtime.md) for the optional Llama Champion runtime path.
+See [docs/llama-cpp-runtime.md](docs/llama-cpp-runtime.md) for the optional `llama.cpp` runtime path.

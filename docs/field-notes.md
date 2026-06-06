@@ -17,7 +17,7 @@ Current product stance from user feedback on 2026-06-06: optimize for students l
 - Model constraint: default model target is `openbmb/MiniCPM4.1-8B`, well under the `<=32B` rule.
 - Sponsor target: OpenAI Codex track through Codex-built repo history and README linkage.
 - OpenBMB fit: the default small-model path uses `openbmb/MiniCPM4.1-8B` for plan generation when available.
-- NVIDIA/Nemotron honesty: the app does not currently claim the Nemotron Quest because the default live model is OpenBMB MiniCPM. The useful overlap is no-cloud-API design plus optional local/`llama.cpp` support. TinyLlama and official OpenBMB MiniCPM4 0.5B GGUF smokes passed through the CLI path; final Llama Champion claim still depends on showing that route in final demo/materials.
+- NVIDIA/Nemotron honesty: the app does not currently claim the Nemotron Quest because the default live model is OpenBMB MiniCPM. The useful overlap is no-cloud-API design plus optional local/`llama.cpp` support. TinyLlama and official OpenBMB MiniCPM4 0.5B GGUF smokes passed through the CLI path, but any `llama.cpp`-specific claim should be made only if that route is shown in final materials.
 - Runtime honesty: CPU-only Hugging Face Spaces use the deterministic fallback by default; the current live Space is on ZeroGPU and a 2026-06-06 model-backed smoke returned `Generated with openbmb/MiniCPM4.1-8B on CUDA/ZeroGPU.` GGUF routes should still be shown only after a matching llama.cpp smoke.
 
 ## What Changed During Build
@@ -34,9 +34,9 @@ Current product stance from user feedback on 2026-06-06: optimize for students l
 - Off-Brand evidence: the app includes clearly labeled sample scenarios, a study receipt, collapsed claim proof, and a final-sheet artifact with first-action, proof-before-stopping, and "Do not do" guardrails.
 - Sharing is Caring: publish the Codex trace or build log before final submission.
 - Field Notes: this document becomes the concise public report, backed by the app's copyable field-note prompt.
-- Well-Tuned runway: `data/readiness_cases.jsonl` is a small public eval seed, but not a fine-tune claim.
-- Off the Grid: the app attempts local model inference and has no cloud API dependency.
-- Llama Champion: possible later through `USE_LLAMA_CPP=1`; local `llama-cli` is installed and the app-level OpenBMB MiniCPM4 0.5B GGUF smoke passed. Claim only if final demo/materials explicitly use or show that route.
+- Fine-tuning runway: `data/readiness_cases.jsonl` is a small public eval seed, but not a fine-tune claim.
+- No-cloud-API runway: the app attempts local model inference and has no required external API key.
+- Optional `llama.cpp` runway: possible later through `USE_LLAMA_CPP=1`; local `llama-cli` is installed and the app-level OpenBMB MiniCPM4 0.5B GGUF smoke passed. Claim only if final demo/materials explicitly use or show that route.
 
 ## Validation Plan
 

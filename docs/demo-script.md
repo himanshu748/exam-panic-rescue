@@ -62,7 +62,7 @@ If asked about sponsor proof, use the collapsed build-proof section after the pr
 
 - Do not guarantee marks.
 - Do not claim final hackathon submission before Space/Git/demo are ready.
-- Do not claim Llama Champion until llama.cpp is live-tested.
+- Do not claim any `llama.cpp`-specific badge unless that route is live-tested and shown in the final materials.
 - Do not mention Modal in the product story.
 - Do not expose account dashboards, redemption links, or credential screens in the recording.
 
