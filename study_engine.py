@@ -171,14 +171,21 @@ What they know: {compact(data.known_material)}
 Extracted topics: {", ".join(topics) if topics else "none"}
 Confidence out of 5: {data.confidence}
 
-Return 5 short practice questions and a 4-step survival plan. Keep it specific and calm.
+Return exactly this structure:
+5 practice questions:
+- ...
+
+4-step survival plan:
+1. ...
+
+Keep it specific and calm. Do not include analysis, hidden reasoning, chain-of-thought, or <think> tags.
 """
 
 
 SYSTEM_PROMPT = """You are helping one stressed student recover before an exam.
 Do not pretend to know the exact syllabus. Do not guarantee marks.
 Use the student's own topics and create practical drills.
-Do not reveal hidden reasoning. Return only the useful final answer."""
+Do not reveal hidden reasoning. Do not write <think> tags. Return only the useful final answer."""
 
 
 def chat_messages(data: StudyInput, topics: list[str]) -> list[dict[str, str]]:
@@ -247,8 +254,8 @@ def generated_text_from_pipeline_result(result) -> str:
     if isinstance(generated, list) and generated:
         last = generated[-1]
         if isinstance(last, dict):
-            return compact(last.get("content", ""))
-    return compact(str(generated))
+            return strip_hidden_reasoning(last.get("content", ""))
+    return strip_hidden_reasoning(str(generated))
 
 
 def generated_text_from_llama_cpp_result(result) -> str:
@@ -260,8 +267,16 @@ def generated_text_from_llama_cpp_result(result) -> str:
     first = choices[0]
     message = first.get("message", {})
     if isinstance(message, dict) and message.get("content"):
-        return compact(message.get("content", ""))
-    return compact(first.get("text", ""))
+        return strip_hidden_reasoning(message.get("content", ""))
+    return strip_hidden_reasoning(first.get("text", ""))
+
+
+def strip_hidden_reasoning(text: str) -> str:
+    cleaned = re.sub(r"<think>.*?</think>", " ", text or "", flags=re.I | re.S)
+    if re.search(r"<think\b", cleaned, flags=re.I):
+        return ""
+    cleaned = re.sub(r"</think>", " ", cleaned, flags=re.I)
+    return compact(cleaned)
 
 
 def int_env(name: str, default: int) -> int:
@@ -354,7 +369,7 @@ def generated_text_from_llama_cli_output(output: str, prompt: str = "") -> str:
     text = re.sub(r"\[\s*Prompt:.*?\]\s*", " ", text, flags=re.S)
     text = text.replace("Exiting...", " ")
     text = re.sub(r"^(>\s*)+", "", text).strip()
-    return compact(text)
+    return strip_hidden_reasoning(text)
 
 
 def llama_cli_rescue(data: StudyInput, topics: list[str]) -> tuple[str | None, str]:
@@ -497,7 +512,7 @@ def model_rescue(data: StudyInput, topics: list[str]) -> tuple[str | None, str]:
     try:
         result = _generator()(
             chat_messages(data, topics),
-            max_new_tokens=260,
+            max_new_tokens=int_env("MODEL_MAX_NEW_TOKENS", 520),
             do_sample=False,
             return_full_text=False,
         )

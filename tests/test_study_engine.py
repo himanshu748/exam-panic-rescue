@@ -20,6 +20,7 @@ from study_engine import (
     extract_topics,
     generated_text_from_llama_cli_output,
     generated_text_from_llama_cpp_result,
+    generated_text_from_pipeline_result,
     llama_cli_command,
     panic_pattern,
     proof_checklist,
@@ -202,6 +203,20 @@ class StudyEngineTest(unittest.TestCase):
         )
 
         self.assertEqual(text, "Cohesive rescue plan.")
+
+    def test_strips_closed_think_tags_from_model_output(self):
+        text = generated_text_from_pipeline_result(
+            [{"generated_text": [{"role": "assistant", "content": "<think>private reasoning</think>5 practice questions: Start."}]}]
+        )
+
+        self.assertEqual(text, "5 practice questions: Start.")
+
+    def test_drops_incomplete_think_tag_model_output(self):
+        text = generated_text_from_pipeline_result(
+            [{"generated_text": [{"role": "assistant", "content": "<think>private reasoning that never closes"}]}]
+        )
+
+        self.assertEqual(text, "")
 
     def test_strips_prompt_echo_from_llama_cli_output(self):
         text = generated_text_from_llama_cli_output(
