@@ -1,6 +1,7 @@
 ---
 title: Exam Panic Rescue
 sdk: gradio
+sdk_version: 6.0.1
 app_file: app.py
 python_version: 3.10.13
 license: mit
