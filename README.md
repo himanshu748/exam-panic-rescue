@@ -49,6 +49,7 @@ Hardware note: the hackathon rule allows models up to `<=32B`, but the live Grad
 - Best Demo / Community Choice angle: the app now avoids automatic generation, so the live product path is easier to understand in a short video or social post.
 - Not claimed: Modal Awards, NVIDIA Nemotron Quest, Tiny Titan, Well-Tuned, or Best Agent unless matching evidence is added.
 - Five bonus-quest target: Off-Brand, no-cloud-API design, Field Notes, public build trace, and optional `llama.cpp` evidence. Well-Tuned is intentionally skipped unless real data appears.
+- Public trace dataset: https://huggingface.co/datasets/build-small-hackathon/exam-panic-rescue-build-trace
 
 See [docs/sponsor-coverage.md](docs/sponsor-coverage.md) for the current sponsor/bonus matrix. Modal is intentionally not part of the product target.
 
@@ -142,5 +143,6 @@ The full preflight includes external evidence checks, so it will continue to rep
 
 See [docs/field-notes.md](docs/field-notes.md) for the public build report draft.
 See [data/codex_trace_public.jsonl](data/codex_trace_public.jsonl) for the public-safe build trace seed.
+The same public trace is mirrored on Hugging Face at https://huggingface.co/datasets/build-small-hackathon/exam-panic-rescue-build-trace.
 See [docs/development-workflow.md](docs/development-workflow.md) for local and JetBrains/PyCharm run workflows.
 See [docs/llama-cpp-runtime.md](docs/llama-cpp-runtime.md) for the optional `llama.cpp` runtime path.

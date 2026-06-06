@@ -32,7 +32,7 @@ Current product stance from user feedback on 2026-06-06: optimize for students l
 
 - Off-Brand: custom Gradio Blocks layout and CSS.
 - Off-Brand evidence: the app includes clearly labeled sample scenarios, a study receipt, collapsed claim proof, and a final-sheet artifact with first-action, proof-before-stopping, and "Do not do" guardrails.
-- Sharing is Caring: publish the public-safe Codex trace in `data/codex_trace_public.jsonl` to the Hub before final submission.
+- Sharing is Caring: public-safe Codex trace is published at https://huggingface.co/datasets/build-small-hackathon/exam-panic-rescue-build-trace.
 - Field Notes: this document becomes the concise public report, backed by the app's copyable field-note prompt.
 - Fine-tuning runway: `data/readiness_cases.jsonl` is a small public eval seed, but not a fine-tune claim.
 - No-cloud-API runway: the app attempts local model inference and has no required external API key.

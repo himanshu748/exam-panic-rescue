@@ -99,7 +99,7 @@ The app stays intentionally narrow: one stressed student, one exam, one time box
 
 - MiniCPM generation on the live Space is verified on ZeroGPU; preserve quota and re-test only before recording or submission.
 - llama.cpp path is implemented and documented; TinyLlama GGUF and official OpenBMB MiniCPM4 0.5B GGUF local smokes passed. Any final `llama.cpp`-specific claim still needs the demo/materials to explicitly show that route.
-- Public-safe build trace seed exists at `data/codex_trace_public.jsonl` and should be mirrored to a Hugging Face Dataset for Sharing is Caring evidence.
+- Public-safe build trace seed exists at `data/codex_trace_public.jsonl` and is mirrored to https://huggingface.co/datasets/build-small-hackathon/exam-panic-rescue-build-trace for Sharing is Caring evidence.
 - Cohere review hook is implemented but intentionally not targeted unless official Cohere-specific criteria appear.
 
 ## Public Trace Rule
@@ -108,5 +108,6 @@ Keep this trace public-safe and add final public links when they exist:
 
 - Public GitHub repo: https://github.com/himanshu748/exam-panic-rescue
 - Hugging Face Space: https://huggingface.co/spaces/build-small-hackathon/exam-panic-rescue
+- Public build trace dataset: https://huggingface.co/datasets/build-small-hackathon/exam-panic-rescue-build-trace
 - Demo video.
 - Final field notes.
