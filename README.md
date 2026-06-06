@@ -42,12 +42,13 @@ Hardware note: the hackathon rule allows models up to `<=32B`, but the live Grad
 - Model rule: the default model target is `openbmb/MiniCPM4.1-8B`, under the `<=32B` limit.
 - OpenAI Codex track: built with Codex; public GitHub repo is linked from this Space README.
 - OpenBMB angle: the default model path targets `openbmb/MiniCPM4.1-8B`, with a verified ZeroGPU Gradio handler for the live Space path.
-- NVIDIA/Nemotron note: not a submitted claim right now because the live default is OpenBMB MiniCPM, not Nemotron. The useful overlap is the no-cloud-API/local-runtime design and optional `llama.cpp` path.
+- NVIDIA/Nemotron note: not a submitted claim right now because the live default is OpenBMB MiniCPM. An optional `nvidia/Nemotron-Mini-4B-Instruct` fallback path exists behind `USE_NEMOTRON_FALLBACK=1`, but it should not be claimed until a live smoke proves it.
 - Cohere note: supporting sponsor only for now; an optional `USE_COHERE_REVIEW=1` hook exists, but the main demo stays local-first and does not claim Cohere usage.
 - JetBrains angle: documented PyCharm/JetBrains run workflow for app, tests, and readiness checks.
 - Off-Brand angle: custom Gradio layout, clearly labeled sample cases, and a printable final-sheet artifact with a first action and a "do not do" guardrail.
 - Best Demo / Community Choice angle: the app now avoids automatic generation, so the live product path is easier to understand in a short video or social post.
 - Not claimed: Modal Awards, NVIDIA Nemotron Quest, Tiny Titan, Well-Tuned, or Best Agent unless matching evidence is added.
+- Five bonus-quest target: Off-Brand, no-cloud-API design, Field Notes, public build trace, and optional `llama.cpp` evidence. Well-Tuned is intentionally skipped unless real data appears.
 
 See [docs/sponsor-coverage.md](docs/sponsor-coverage.md) for the current sponsor/bonus matrix. Modal is intentionally not part of the product target.
 
@@ -103,6 +104,17 @@ LLAMA_CPP_MODEL_PATH=/path/to/MiniCPM4-0.5B-QAT-Int4_gptq_aware_q4_0.gguf \
 python app.py
 ```
 
+Optional NVIDIA Nemotron fallback:
+
+```bash
+USE_NEMOTRON_FALLBACK=1 \
+NEMOTRON_FALLBACK_MODEL_ID=nvidia/Nemotron-Mini-4B-Instruct \
+USE_LOCAL_MODEL=1 \
+python app.py
+```
+
+This path is disabled by default. OpenBMB MiniCPM remains the primary submission runtime; Nemotron should only be mentioned as evidence after a matching smoke test passes.
+
 Optional Cohere quality review:
 
 ```bash
@@ -129,5 +141,6 @@ python scripts/preflight_check.py
 The full preflight includes external evidence checks, so it will continue to report missing final public links until the demo video and social assets exist.
 
 See [docs/field-notes.md](docs/field-notes.md) for the public build report draft.
+See [data/codex_trace_public.jsonl](data/codex_trace_public.jsonl) for the public-safe build trace seed.
 See [docs/development-workflow.md](docs/development-workflow.md) for local and JetBrains/PyCharm run workflows.
 See [docs/llama-cpp-runtime.md](docs/llama-cpp-runtime.md) for the optional `llama.cpp` runtime path.

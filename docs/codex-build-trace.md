@@ -89,6 +89,7 @@ The app stays intentionally narrow: one stressed student, one exam, one time box
 - CPU-only Hugging Face Space runtime now defaults to deterministic fallback unless `USE_LOCAL_MODEL=1` is explicitly set after hardware is upgraded or a small GGUF path is configured.
 - Hugging Face Space API check on 2026-06-06 reports current/requested hardware as `zero-a10g`.
 - Live ZeroGPU generation smoke on 2026-06-06 returned `Generated with openbmb/MiniCPM4.1-8B on CUDA/ZeroGPU.`, produced a study receipt, and confirmed no `<think>` tags in the returned packet.
+- Optional NVIDIA fallback support is implemented behind `USE_NEMOTRON_FALLBACK=1` with default model `nvidia/Nemotron-Mini-4B-Instruct`; it is not a claim until smoke-tested.
 - Recent Codex-attributed commits published the UI and hardware-honesty passes to GitHub and the Hugging Face Space.
 - Latest local visual QA covered desktop `1280px` and mobile `390px` layouts.
 - Local browser QA on 2026-06-06 confirmed the no-auto-generation flow: opening the app shows a ready state, loading the physics sample only fills fields, and the build button produces the packet.
@@ -98,6 +99,7 @@ The app stays intentionally narrow: one stressed student, one exam, one time box
 
 - MiniCPM generation on the live Space is verified on ZeroGPU; preserve quota and re-test only before recording or submission.
 - llama.cpp path is implemented and documented; TinyLlama GGUF and official OpenBMB MiniCPM4 0.5B GGUF local smokes passed. Any final `llama.cpp`-specific claim still needs the demo/materials to explicitly show that route.
+- Public-safe build trace seed exists at `data/codex_trace_public.jsonl` and should be mirrored to a Hugging Face Dataset for Sharing is Caring evidence.
 - Cohere review hook is implemented but intentionally not targeted unless official Cohere-specific criteria appear.
 
 ## Public Trace Rule
