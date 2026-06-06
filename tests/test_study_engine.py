@@ -2,6 +2,7 @@ import json
 import os
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 os.environ["USE_LOCAL_MODEL"] = "0"
 
@@ -12,6 +13,7 @@ from study_engine import (
     LLAMA_CPP_FILENAME,
     LLAMA_CPP_HF_SELECTOR,
     LLAMA_CPP_REPO_ID,
+    NEMOTRON_FALLBACK_MODEL_ID,
     build_rescue_plan,
     cohere_quality_review,
     cohere_review_text_from_response,
@@ -22,6 +24,7 @@ from study_engine import (
     generated_text_from_llama_cpp_result,
     generated_text_from_pipeline_result,
     llama_cli_command,
+    nemotron_fallback_enabled,
     panic_pattern,
     proof_checklist,
     StudyInput,
@@ -184,6 +187,41 @@ class StudyEngineTest(unittest.TestCase):
         self.assertEqual(LLAMA_CPP_REPO_ID, "openbmb/MiniCPM4.1-8B-GGUF")
         self.assertEqual(LLAMA_CPP_FILENAME, "MiniCPM4.1-8B-Q4_K_M.gguf")
         self.assertEqual(LLAMA_CPP_HF_SELECTOR, "Q4_K_M")
+
+    def test_nemotron_fallback_is_configured_but_default_off(self):
+        self.assertEqual(NEMOTRON_FALLBACK_MODEL_ID, "nvidia/Nemotron-Mini-4B-Instruct")
+        self.assertFalse(nemotron_fallback_enabled())
+
+    def test_nemotron_fallback_route_is_after_primary_model_failure(self):
+        data = StudyInput(
+            student_name="Nia",
+            subject="Machine Learning",
+            time_left_minutes=90,
+            exam_format="Mixed",
+            panic_note="I mix up precision and recall.",
+            known_material="precision, recall, confusion matrix",
+            confidence=2,
+        )
+
+        calls = []
+
+        def fake_transformer_rescue(model_id, *_):
+            calls.append(model_id)
+            if model_id == "openbmb/MiniCPM4.1-8B":
+                return None, "primary failed"
+            return "5 practice questions:\n- Explain precision vs recall.", "Generated with nvidia/Nemotron-Mini-4B-Instruct on CUDA/ZeroGPU."
+
+        with patch("study_engine.USE_LOCAL_MODEL", True), patch("study_engine.USE_NEMOTRON_FALLBACK", True), patch(
+            "study_engine.transformer_rescue", side_effect=fake_transformer_rescue
+        ):
+            import study_engine
+
+            generated, note = study_engine.model_rescue(data, ["precision", "recall"])
+
+        self.assertEqual(calls, ["openbmb/MiniCPM4.1-8B", "nvidia/Nemotron-Mini-4B-Instruct"])
+        self.assertIn("precision vs recall", generated)
+        self.assertIn("Nemotron-Mini-4B-Instruct", note)
+        self.assertIn("fallback", note)
 
     def test_llama_cli_command_targets_openbmb_hf_selector(self):
         command = llama_cli_command("student panic", max_tokens=32)

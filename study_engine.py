@@ -15,6 +15,8 @@ from functools import lru_cache
 DEFAULT_MODEL_ID = os.getenv("MODEL_ID", "openbmb/MiniCPM4.1-8B")
 TRANSFORMER_DEVICE_NOTE = "CPU"
 TRANSFORMER_PRELOAD_NOTE = ""
+NEMOTRON_FALLBACK_MODEL_ID = os.getenv("NEMOTRON_FALLBACK_MODEL_ID", "nvidia/Nemotron-Mini-4B-Instruct").strip()
+USE_NEMOTRON_FALLBACK = os.getenv("USE_NEMOTRON_FALLBACK", "0").strip() in {"1", "true", "True", "yes", "YES"}
 USE_LLAMA_CPP = os.getenv("USE_LLAMA_CPP", "0").strip() in {"1", "true", "True"}
 LLAMA_CPP_BACKEND = os.getenv("LLAMA_CPP_BACKEND", "auto").strip().lower()
 LLAMA_CPP_CLI = os.getenv("LLAMA_CPP_CLI", "llama-cli").strip() or "llama-cli"
@@ -221,15 +223,17 @@ def _llama_cpp_model():
     )
 
 
-@lru_cache(maxsize=1)
-def _generator():
-    from transformers import pipeline
+@lru_cache(maxsize=2)
+def _generator(model_id: str = DEFAULT_MODEL_ID):
+    from transformers import AutoTokenizer, pipeline
 
     kwargs = {
         "task": "text-generation",
-        "model": DEFAULT_MODEL_ID,
+        "model": model_id,
         "trust_remote_code": True,
     }
+    if model_id == "nvidia/Nemotron-Mini-4B-Instruct":
+        kwargs["tokenizer"] = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
 
     global TRANSFORMER_DEVICE_NOTE
     try:
@@ -300,6 +304,10 @@ def bool_env(name: str, default: bool = False) -> bool:
     return configured.strip() in {"1", "true", "True", "yes", "YES"}
 
 
+def nemotron_fallback_enabled() -> bool:
+    return USE_NEMOTRON_FALLBACK and bool(NEMOTRON_FALLBACK_MODEL_ID)
+
+
 def accelerator_available() -> bool:
     accelerator = os.getenv("ACCELERATOR", "none").strip().lower()
     return accelerator not in {"", "none", "cpu-basic", "cpu-upgrade"}
@@ -318,7 +326,7 @@ def maybe_preload_transformer_model() -> None:
         return
 
     try:
-        _generator()
+        _generator(DEFAULT_MODEL_ID)
     except Exception as exc:
         TRANSFORMER_PRELOAD_NOTE = f"Transformer preload skipped after error: {exc}"
     else:
@@ -475,6 +483,26 @@ Return one short line that starts with "Cohere quality check:".
     return review or "Cohere quality review returned no text."
 
 
+def transformer_rescue(model_id: str, data: StudyInput, topics: list[str]) -> tuple[str | None, str]:
+    try:
+        result = _generator(model_id)(
+            chat_messages(data, topics),
+            max_new_tokens=int_env("MODEL_MAX_NEW_TOKENS", 520),
+            do_sample=False,
+            return_full_text=False,
+        )
+    except Exception as exc:
+        details = str(exc)
+        if model_id == DEFAULT_MODEL_ID and TRANSFORMER_PRELOAD_NOTE:
+            details = f"{details} | {TRANSFORMER_PRELOAD_NOTE}"
+        return None, f"{model_id} unavailable: {details}"
+
+    generated = generated_text_from_pipeline_result(result)
+    if not generated:
+        return None, f"{model_id} returned an empty plan."
+    return generated, f"Generated with {model_id} on {TRANSFORMER_DEVICE_NOTE}."
+
+
 def model_rescue(data: StudyInput, topics: list[str]) -> tuple[str | None, str]:
     if not USE_LOCAL_MODEL:
         return None, LOCAL_MODEL_DISABLED_NOTE
@@ -516,23 +544,15 @@ def model_rescue(data: StudyInput, topics: list[str]) -> tuple[str | None, str]:
             source = LLAMA_CPP_MODEL_PATH or f"{LLAMA_CPP_REPO_ID}:{LLAMA_CPP_FILENAME}"
             return generated, f"Generated locally with llama-cpp-python model {source}."
 
-    try:
-        result = _generator()(
-            chat_messages(data, topics),
-            max_new_tokens=int_env("MODEL_MAX_NEW_TOKENS", 520),
-            do_sample=False,
-            return_full_text=False,
-        )
-    except Exception as exc:
-        details = str(exc)
-        if TRANSFORMER_PRELOAD_NOTE:
-            details = f"{details} | {TRANSFORMER_PRELOAD_NOTE}"
-        return None, f"Using fallback study engine because {DEFAULT_MODEL_ID} was unavailable: {details}"
-
-    generated = generated_text_from_pipeline_result(result)
+    generated, note = transformer_rescue(DEFAULT_MODEL_ID, data, topics)
     if not generated:
-        return None, f"{DEFAULT_MODEL_ID} returned an empty plan; fallback used."
-    return generated, f"Generated with {DEFAULT_MODEL_ID} on {TRANSFORMER_DEVICE_NOTE}."
+        if nemotron_fallback_enabled():
+            fallback_generated, fallback_note = transformer_rescue(NEMOTRON_FALLBACK_MODEL_ID, data, topics)
+            if fallback_generated:
+                return fallback_generated, fallback_note.replace(" on ", " fallback on ", 1)
+            return None, f"Using fallback study engine because primary and Nemotron fallback models were unavailable: {note} | {fallback_note}"
+        return None, f"Using fallback study engine because {note}; fallback used."
+    return generated, note
 
 
 def fallback_drills(subject: str, topics: list[str], exam_format: str) -> list[str]:
