@@ -22,20 +22,21 @@ from study_engine import DEMO_CASES, EXAMPLE_INPUT, build_rescue_plan
 
 CSS = """
 :root {
-  --ink: #0d211e;
-  --muted: #344946;
-  --muted-soft: #50635f;
-  --paper: #f6ecdc;
-  --card: rgba(255, 250, 239, 0.98);
-  --card-solid: #fff9ed;
-  --line: #a79c87;
-  --green: #00624f;
-  --green-dark: #053d35;
-  --coral: #9f3429;
-  --gold: #8f6509;
-  --blue: #174d68;
-  --graph: rgba(23, 77, 104, 0.08);
-  --shadow: rgba(37, 29, 16, 0.15);
+  --ink: #071613;
+  --muted: #1c342f;
+  --muted-soft: #27423c;
+  --paper: #f4e2c5;
+  --card: #fffaf0;
+  --card-solid: #fff8ea;
+  --field: #fffef9;
+  --line: #5e5545;
+  --green: #005844;
+  --green-dark: #032f28;
+  --coral: #84231b;
+  --gold: #755004;
+  --blue: #073e58;
+  --graph: rgba(7, 62, 88, 0.11);
+  --shadow: rgba(37, 29, 16, 0.20);
 }
 
 .gradio-container {
@@ -51,6 +52,11 @@ CSS = """
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   min-height: 100vh;
+}
+
+.gradio-container,
+.gradio-container * {
+  text-shadow: none !important;
 }
 
 .gradio-container button:focus-visible,
@@ -73,11 +79,11 @@ CSS = """
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   gap: 14px;
-  border: 1px solid rgba(19, 32, 34, 0.18);
+  border: 1px solid rgba(7, 22, 19, 0.34);
   border-radius: 24px;
   background:
-    linear-gradient(135deg, rgba(255, 251, 241, 0.99), rgba(245, 225, 190, 0.88));
-  box-shadow: 0 18px 48px rgba(37, 29, 16, 0.13);
+    linear-gradient(135deg, #fffaf0, #f4d9aa);
+  box-shadow: 0 18px 48px rgba(37, 29, 16, 0.18);
   padding: clamp(18px, 3vw, 30px);
 }
 
@@ -98,9 +104,9 @@ CSS = """
   width: fit-content;
   border: 1px solid rgba(0, 108, 91, 0.28);
   border-radius: 999px;
-  background: rgba(0, 98, 79, 0.11);
+  background: rgba(0, 88, 68, 0.16);
   color: var(--green-dark);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 900;
   letter-spacing: 0.10em;
   padding: 8px 12px;
@@ -121,10 +127,10 @@ CSS = """
 .hero p {
   margin: 0;
   max-width: 720px;
-  color: #233936;
-  font-size: clamp(16px, 2vw, 19px);
-  font-weight: 650;
-  line-height: 1.52;
+  color: var(--muted);
+  font-size: clamp(17px, 2vw, 20px);
+  font-weight: 750;
+  line-height: 1.55;
 }
 
 .hero-steps {
@@ -135,12 +141,12 @@ CSS = """
 }
 
 .hero-steps span {
-  border: 1px solid rgba(19, 32, 34, 0.22);
+  border: 1px solid rgba(7, 22, 19, 0.32);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.78);
-  color: #172e2a;
-  font-size: 14px;
-  font-weight: 850;
+  background: #fffdf7;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 900;
   padding: 8px 11px;
 }
 
@@ -153,9 +159,9 @@ CSS = """
 }
 
 .hero-proof div {
-  border: 1px solid rgba(19, 32, 34, 0.20);
+  border: 1px solid rgba(7, 22, 19, 0.30);
   border-radius: 18px;
-  background: rgba(255, 255, 255, 0.78);
+  background: #fffdf7;
   padding: 12px;
 }
 
@@ -172,9 +178,9 @@ CSS = """
   display: block;
   margin-top: 5px;
   color: var(--ink);
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 850;
-  line-height: 1.35;
+  line-height: 1.42;
 }
 
 .demo-status {
@@ -185,17 +191,17 @@ CSS = """
 }
 
 .status-card {
-  border: 1px solid rgba(19, 32, 34, 0.20);
+  border: 1px solid rgba(7, 22, 19, 0.32);
   border-radius: 20px;
-  background: rgba(255, 250, 240, 0.92);
-  box-shadow: 0 16px 40px rgba(37, 29, 16, 0.10);
+  background: #fff8ea;
+  box-shadow: 0 16px 40px rgba(37, 29, 16, 0.13);
   padding: 13px 14px;
 }
 
 .status-card b {
   display: block;
   color: var(--green-dark);
-  font-size: 13px;
+  font-size: 14px;
   letter-spacing: 0.10em;
   text-transform: uppercase;
 }
@@ -204,9 +210,9 @@ CSS = """
   display: block;
   margin-top: 5px;
   color: var(--muted);
-  font-size: 14px;
-  font-weight: 650;
-  line-height: 1.38;
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.45;
 }
 
 .model-budget {
@@ -217,7 +223,7 @@ CSS = """
 }
 
 .budget-card {
-  border: 1px solid rgba(19, 32, 34, 0.22);
+  border: 1px solid rgba(7, 22, 19, 0.34);
   border-radius: 20px;
   background: var(--card-solid);
   padding: 13px 14px;
@@ -232,7 +238,7 @@ CSS = """
 .budget-card b {
   display: block;
   color: var(--ink);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -242,9 +248,9 @@ CSS = """
   display: block;
   margin-top: 6px;
   color: var(--muted);
-  font-size: 14px;
-  font-weight: 650;
-  line-height: 1.38;
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.45;
 }
 
 #main-workspace {
@@ -255,10 +261,10 @@ CSS = """
 
 .input-card,
 .output-stack {
-  border: 1px solid rgba(19, 32, 34, 0.22);
+  border: 1px solid rgba(7, 22, 19, 0.34);
   border-radius: 26px;
   background: var(--card);
-  box-shadow: 0 18px 52px rgba(37, 29, 16, 0.11);
+  box-shadow: 0 18px 52px rgba(37, 29, 16, 0.16);
   padding: clamp(14px, 2vw, 20px);
 }
 
@@ -284,19 +290,18 @@ CSS = """
 .section-title p {
   margin: 6px 0 0;
   color: var(--muted);
-  font-size: 14px;
-  font-weight: 650;
-  line-height: 1.42;
+  font-size: 16px;
+  font-weight: 750;
+  line-height: 1.5;
 }
 
 .panel {
-  border: 1px solid rgba(19, 32, 34, 0.22);
+  border: 1px solid rgba(7, 22, 19, 0.30);
   border-radius: 20px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 250, 240, 0.90));
+  background: #fffef9;
   box-shadow: none;
   margin-bottom: 10px;
-  padding: 10px 12px;
+  padding: 13px 15px;
 }
 
 .panel h3 {
@@ -334,23 +339,24 @@ CSS = """
 .input-card input,
 .input-card select {
   border-radius: 14px !important;
-  border-color: rgba(19, 32, 34, 0.26) !important;
-  background: #fffdf7 !important;
+  border-color: rgba(7, 22, 19, 0.48) !important;
+  background: var(--field) !important;
   color: var(--ink) !important;
-  font-size: 15px !important;
-  font-weight: 650 !important;
+  font-size: 16px !important;
+  font-weight: 750 !important;
+  line-height: 1.45 !important;
 }
 
 .input-card label,
 .input-card .wrap label {
   color: var(--ink) !important;
-  font-size: 14px !important;
+  font-size: 15px !important;
   font-weight: 900 !important;
 }
 
 .gradio-container input::placeholder,
 .gradio-container textarea::placeholder {
-  color: #667672 !important;
+  color: #4f625d !important;
   opacity: 1 !important;
 }
 
@@ -363,15 +369,28 @@ CSS = """
 .gradio-container .markdown li,
 .gradio-container .markdown span {
   color: var(--ink) !important;
-  font-size: 14px;
-  line-height: 1.48;
+  font-size: 16px !important;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.gradio-container .prose h1,
+.gradio-container .prose h2,
+.gradio-container .prose h3,
+.gradio-container .markdown h1,
+.gradio-container .markdown h2,
+.gradio-container .markdown h3 {
+  color: var(--ink) !important;
+  font-weight: 900 !important;
 }
 
 .gradio-container .block-info,
 .gradio-container .form .secondary-wrap,
 .gradio-container label span,
 .gradio-container .wrap span {
-  color: var(--muted-soft) !important;
+  color: var(--muted) !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
   opacity: 1 !important;
 }
 
@@ -404,26 +423,26 @@ CSS = """
   border-radius: 12px;
   background: rgba(189, 143, 34, 0.10);
   padding: 10px 12px;
-  font-size: 14px;
-  font-weight: 650;
-  color: #322509;
+  font-size: 15px;
+  font-weight: 800;
+  color: #241800;
 }
 
 .runtime-label {
   margin: 4px 0 -4px;
   color: var(--green-dark);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 850;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .final-sheet {
-  border: 1px solid rgba(19, 32, 34, 0.34);
+  border: 1px solid rgba(7, 22, 19, 0.42);
   border-radius: 24px;
   background:
     radial-gradient(circle at top right, rgba(189, 143, 34, 0.25), transparent 34%),
-    linear-gradient(135deg, rgba(0, 98, 79, 0.12), rgba(255, 255, 255, 0.98));
+    linear-gradient(135deg, rgba(0, 98, 79, 0.13), #fffef9);
   padding: clamp(16px, 3vw, 24px);
   color: var(--ink);
 }
@@ -486,15 +505,15 @@ CSS = """
 .sheet-footer {
   margin: 10px 0 0;
   color: var(--muted);
-  font-size: 14px;
-  font-weight: 650;
+  font-size: 15px;
+  font-weight: 750;
 }
 
 .demo-cases {
   margin-top: 14px;
-  border: 1px dashed rgba(19, 32, 34, 0.20);
+  border: 1px dashed rgba(7, 22, 19, 0.36);
   border-radius: 18px;
-  background: rgba(255, 252, 242, 0.92);
+  background: #fffaf0;
   box-shadow: none;
   padding: 12px;
 }
@@ -510,8 +529,8 @@ CSS = """
 .demo-cases p {
   margin: 0 0 12px;
   color: var(--muted);
-  font-size: 14px;
-  font-weight: 650;
+  font-size: 15px;
+  font-weight: 750;
 }
 
 .case-list {
@@ -522,11 +541,11 @@ CSS = """
   justify-content: flex-start !important;
   width: 100%;
   min-height: 44px;
-  border: 1px solid rgba(0, 108, 91, 0.18) !important;
+  border: 1px solid rgba(0, 88, 68, 0.36) !important;
   border-radius: 15px !important;
-  background: rgba(255, 250, 240, 0.94) !important;
+  background: #fffef9 !important;
   color: var(--ink) !important;
-  font-size: 14px !important;
+  font-size: 15px !important;
   font-weight: 800 !important;
   text-align: left !important;
 }
@@ -544,9 +563,9 @@ CSS = """
 }
 
 .claim-card {
-  border: 1px solid rgba(19, 32, 34, 0.22);
+  border: 1px solid rgba(7, 22, 19, 0.30);
   border-radius: 16px;
-  background: rgba(255, 252, 242, 0.94);
+  background: #fffef9;
   padding: 12px;
   box-shadow: none;
 }
@@ -554,7 +573,7 @@ CSS = """
 .claim-card b {
   display: block;
   color: var(--green-dark);
-  font-size: 13px;
+  font-size: 14px;
   letter-spacing: 0.10em;
   text-transform: uppercase;
 }
@@ -563,30 +582,31 @@ CSS = """
   display: block;
   margin-top: 6px;
   color: var(--muted);
-  font-size: 14px;
-  font-weight: 650;
+  font-size: 15px;
+  font-weight: 750;
   line-height: 1.42;
 }
 
 .proof-details {
   margin-top: 18px;
-  border: 1px solid rgba(19, 32, 34, 0.14);
+  border: 1px solid rgba(7, 22, 19, 0.30);
   border-radius: 20px;
-  background: rgba(255, 252, 242, 0.94);
+  background: #fffaf0;
   padding: 12px 14px;
 }
 
 .proof-details summary {
   cursor: pointer;
   color: var(--green-dark);
-  font-weight: 800;
+  font-size: 15px;
+  font-weight: 900;
 }
 
 .proof-details p {
   color: var(--muted);
-  font-size: 14px;
-  font-weight: 650;
-  line-height: 1.42;
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.5;
 }
 
 @media (prefers-reduced-motion: no-preference) {
