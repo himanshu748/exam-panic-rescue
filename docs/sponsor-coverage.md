@@ -28,7 +28,7 @@ Official recheck on 2026-06-06 still points to Backyard AI as the best main trac
 | Best Demo | Strong target after links | The product has a clear before/after story and visible final sheet; the no-auto-generation flow makes the live demo more reliable. | Needs uploaded demo video and social post URL. |
 | Best Agent | Do not claim strongly | The app is a structured rescue workflow, not a true multi-step autonomous agent. | Avoid calling it agentic unless the judging definition allows workflow agents and we add evidence. |
 | Judges' Wildcard | Passive upside | Honest, polished, practical, and student-relatable can still fit the wildcard if judges like it. | Do not optimize for wildcard directly. |
-| Bonus Quest Champion | Target 5 of 6 | Off-Brand is strong; no-cloud-API design is preserved with Cohere disabled; Field Notes are public-drafted; Sharing is Caring is backed by https://huggingface.co/datasets/build-small-hackathon/exam-panic-rescue-build-trace; optional `llama.cpp` evidence exists for the fifth path. | Do not chase Well-Tuned with fake data. Show `llama.cpp` in final materials before claiming all five. |
+| Bonus Quest Champion | Target 5 of 6 | Off-Brand is strong; no-cloud-API design is preserved with Cohere disabled; Field Notes are public-drafted; Sharing is Caring is backed by public app traces at https://huggingface.co/datasets/build-small-hackathon/exam-panic-rescue-build-trace; optional `llama.cpp` evidence exists for the fifth path. | Do not chase Well-Tuned with fake data. Show `llama.cpp` in final materials before claiming all five. |
 
 ## Submission Rule
 
