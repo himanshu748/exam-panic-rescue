@@ -15,18 +15,22 @@ from study_engine import (
     LLAMA_CPP_REPO_ID,
     NEMOTRON_FALLBACK_MODEL_ID,
     build_rescue_plan,
+    clip_text,
     cohere_quality_review,
     cohere_review_text_from_response,
     detect_panic,
+    detect_weaknesses,
     extract_study_topics,
     extract_topics,
     generated_text_from_llama_cli_output,
     generated_text_from_llama_cpp_result,
     generated_text_from_pipeline_result,
     llama_cli_command,
+    model_size_label,
     nemotron_fallback_enabled,
     panic_pattern,
     proof_checklist,
+    split_model_plan_and_drills,
     StudyInput,
     time_blocks,
 )
@@ -61,6 +65,58 @@ class StudyEngineTest(unittest.TestCase):
         blocks = time_blocks(45)
 
         self.assertEqual(sum(minutes for _, minutes in blocks), 45)
+
+    def test_time_blocks_fit_every_supported_window(self):
+        sample_minutes = list(range(15, 721, 15)) + [16, 47, 89, 121, 359, 700]
+        for minutes in sample_minutes:
+            blocks = time_blocks(minutes)
+            self.assertEqual(
+                sum(block_minutes for _, block_minutes in blocks),
+                minutes,
+                f"blocks must sum to the available time at {minutes} min",
+            )
+            self.assertTrue(
+                all(block_minutes > 0 for _, block_minutes in blocks),
+                f"every block must be positive at {minutes} min",
+            )
+
+    def test_model_practice_questions_become_drills(self):
+        generated = (
+            "5 practice questions:\n"
+            "- Define mitosis vs meiosis in one line.\n"
+            "- List the cell cycle checkpoints.\n"
+            "- Explain cytokinesis with one example.\n\n"
+            "4-step survival plan:\n"
+            "1. Make a hit list.\n"
+            "2. Drill the weakest topic.\n"
+        )
+        plan_text, drills = split_model_plan_and_drills(generated)
+        self.assertIn("survival plan", plan_text.lower())
+        self.assertNotIn("practice questions", plan_text.lower())
+        self.assertEqual(len(drills), 3)
+        self.assertIn("Define mitosis vs meiosis in one line.", drills)
+
+    def test_unstructured_model_output_keeps_template_drills(self):
+        plan_text, drills = split_model_plan_and_drills("Just stay calm and revise your notes.")
+
+        self.assertEqual(drills, [])
+        self.assertIn("stay calm", plan_text.lower())
+
+    def test_clip_text_bounds_long_input(self):
+        self.assertEqual(len(clip_text("a" * 5000, 2000)), 2000)
+        self.assertEqual(clip_text("short"), "short")
+
+    def test_model_size_label_marks_tiny_titan_paths(self):
+        self.assertEqual(model_size_label("openbmb/MiniCPM4.1-8B"), "8B")
+        self.assertEqual(model_size_label("openbmb/MiniCPM4-0.5B"), "0.5B")
+        self.assertEqual(model_size_label("nvidia/Nemotron-Mini-4B-Instruct"), "4B")
+        self.assertEqual(model_size_label("unknown/model"), "")
+
+    def test_weakness_detection_ignores_substring_false_positives(self):
+        # 'summarize'/'assume' contain 'sum' but must not be misread as numerical work.
+        self.assertNotIn("worked problems", detect_weaknesses("I need to summarize and assume the rest."))
+        # Genuine numerical language is still caught.
+        self.assertIn("worked problems", detect_weaknesses("I blank on the sums and numericals."))
 
     def test_build_rescue_plan_has_three_outputs(self):
         plan = build_rescue_plan(

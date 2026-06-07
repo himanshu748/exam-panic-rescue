@@ -28,6 +28,23 @@ USE_COHERE_REVIEW = os.getenv("USE_COHERE_REVIEW", "0").strip() in {"1", "true",
 COHERE_MODEL = os.getenv("COHERE_MODEL", "command-a-plus-05-2026")
 COHERE_API_URL = "https://api.cohere.com/v2/chat"
 
+# Known parameter budgets for the small models this app is built to run. All are within
+# the hackathon's <=32B ceiling; the <=4B entries are the Tiny Titan-eligible demo paths
+# selectable via MODEL_ID (e.g. MODEL_ID=openbmb/MiniCPM4-0.5B).
+MODEL_PARAM_BUDGETS = {
+    "openbmb/MiniCPM4.1-8B": "8B",
+    "openbmb/MiniCPM4-0.5B": "0.5B",
+    "openbmb/MiniCPM4-0.5B-QAT-Int4-GGUF": "0.5B",
+    "openbmb/MiniCPM5-1B": "1B",
+    "openbmb/MiniCPM-1B-sft-bf16": "1B",
+    "nvidia/Nemotron-Mini-4B-Instruct": "4B",
+}
+
+
+def model_size_label(model_id: str) -> str:
+    """Return a human-readable parameter count for a known model id, else empty string."""
+    return MODEL_PARAM_BUDGETS.get((model_id or "").strip(), "")
+
 
 def resolve_local_model_mode() -> tuple[bool, str]:
     configured = os.getenv("USE_LOCAL_MODEL")
@@ -149,15 +166,53 @@ def detect_panic(note: str) -> list[str]:
     return sorted(term for term in PANIC_TERMS if term in lowered)
 
 
+def _apportion_minutes(total: int, weights: list[float]) -> list[int]:
+    """Split ``total`` minutes across ``weights`` as positive integers that sum to exactly ``total``.
+
+    Uses the largest-remainder (Hamilton) method so rounding never loses or invents
+    minutes, then lends one minute to any zero slice (borrowing from the largest slice)
+    so every study block stays visible and positive.
+    """
+    weight_sum = sum(weights) or 1.0
+    raw = [total * weight / weight_sum for weight in weights]
+    floors = [int(value) for value in raw]
+    remainder = total - sum(floors)
+    order = sorted(range(len(raw)), key=lambda i: raw[i] - floors[i], reverse=True)
+    for offset in range(max(remainder, 0)):
+        floors[order[offset % len(order)]] += 1
+
+    # Guarantee no zero-length block while preserving the exact total.
+    for index, value in enumerate(floors):
+        if value <= 0:
+            donor = max(range(len(floors)), key=lambda i: floors[i])
+            if floors[donor] > 1:
+                floors[donor] -= 1
+                floors[index] += 1
+    return floors
+
+
 def time_blocks(minutes: int) -> list[tuple[str, int]]:
-    minutes = max(15, int(minutes or 15))
-    if minutes <= 45:
-        return [("Reset and choose", 5), ("Core recall", minutes - 15), ("Quick test", 7), ("Final sheet", 3)]
-    if minutes <= 120:
-        return [("Reset and rank", 8), ("Core pass", 35), ("Drill pass", 35), ("Patch weak spots", minutes - 90), ("Final sheet", 12)]
-    if minutes <= 360:
-        return [("Reset and rank", 10), ("Core pass", 70), ("Practice loop", 90), ("Break", 15), ("Weak-topic patch", 90), ("Final sheet", 25)]
-    return [("Today plan", 45), ("Core pass", 120), ("Practice loop", 120), ("Break", 30), ("Second pass", 120), ("Final sheet", 45)]
+    """Return a triage plan whose blocks always sum to the available minutes.
+
+    Blocks are apportioned by weight for the chosen time tier, so 60 minutes yields a
+    60-minute plan and 360 minutes yields a 360-minute plan (the old fixed-size tiers
+    silently overshot or wasted time outside a couple of values).
+    """
+    total = max(15, int(minutes or 15))
+    if total <= 45:
+        labels = ["Reset and choose", "Core recall", "Quick test", "Final sheet"]
+        weights = [0.12, 0.62, 0.18, 0.08]
+    elif total <= 120:
+        labels = ["Reset and rank", "Core pass", "Drill pass", "Patch weak spots", "Final sheet"]
+        weights = [0.09, 0.34, 0.30, 0.16, 0.11]
+    elif total <= 360:
+        labels = ["Reset and rank", "Core pass", "Practice loop", "Break", "Weak-topic patch", "Final sheet"]
+        weights = [0.05, 0.26, 0.30, 0.07, 0.22, 0.10]
+    else:
+        labels = ["Today plan", "Core pass", "Practice loop", "Break", "Second pass", "Final sheet"]
+        weights = [0.08, 0.24, 0.26, 0.06, 0.24, 0.12]
+    allocation = _apportion_minutes(total, weights)
+    return [(label, block_minutes) for label, block_minutes in zip(labels, allocation)]
 
 
 def build_prompt(data: StudyInput, topics: list[str]) -> str:
@@ -198,6 +253,33 @@ def chat_messages(data: StudyInput, topics: list[str]) -> list[dict[str, str]]:
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "user", "content": build_prompt(data, topics)},
     ]
+
+
+def render_generation_payload(generator, data: StudyInput, topics: list[str]):
+    """Build the text-generation payload, disabling MiniCPM 'thinking' when possible.
+
+    MiniCPM4.1 is a hybrid reasoning model: left in thinking mode it can spend the whole
+    token budget inside a ``<think>`` block, which ``strip_hidden_reasoning`` then discards,
+    forcing a silent fallback. We pre-render the chat prompt with ``enable_thinking=False``
+    when the tokenizer supports it, and fall back to passing raw messages (the original
+    behaviour) on any incompatibility so a working runtime is never broken.
+    """
+    messages = chat_messages(data, topics)
+    tokenizer = getattr(generator, "tokenizer", None)
+    if tokenizer is not None and hasattr(tokenizer, "apply_chat_template"):
+        for extra in ({"enable_thinking": False}, {}):
+            try:
+                return tokenizer.apply_chat_template(
+                    messages,
+                    tokenize=False,
+                    add_generation_prompt=True,
+                    **extra,
+                )
+            except TypeError:
+                continue
+            except Exception:
+                break
+    return messages
 
 
 @lru_cache(maxsize=1)
@@ -485,8 +567,9 @@ Return one short line that starts with "Cohere quality check:".
 
 def transformer_rescue(model_id: str, data: StudyInput, topics: list[str]) -> tuple[str | None, str]:
     try:
-        result = _generator(model_id)(
-            chat_messages(data, topics),
+        generator = _generator(model_id)
+        result = generator(
+            render_generation_payload(generator, data, topics),
             max_new_tokens=int_env("MODEL_MAX_NEW_TOKENS", 520),
             do_sample=False,
             return_full_text=False,
@@ -500,7 +583,9 @@ def transformer_rescue(model_id: str, data: StudyInput, topics: list[str]) -> tu
     generated = generated_text_from_pipeline_result(result)
     if not generated:
         return None, f"{model_id} returned an empty plan."
-    return generated, f"Generated with {model_id} on {TRANSFORMER_DEVICE_NOTE}."
+    size = model_size_label(model_id)
+    label = f"{model_id} ({size})" if size else model_id
+    return generated, f"Generated with {label} on {TRANSFORMER_DEVICE_NOTE}."
 
 
 def model_rescue(data: StudyInput, topics: list[str]) -> tuple[str | None, str]:
@@ -576,7 +661,7 @@ def detect_weaknesses(panic_note: str) -> list[str]:
     weaknesses = []
     if any(word in lowered for word in ["blank", "forget", "forgot"]):
         weaknesses.append("memory blank-out")
-    if any(word in lowered for word in ["numerical", "problem", "sum", "math"]):
+    if any(word in lowered for word in ["numerical", "problem", "math"]) or re.search(r"\bsums?\b", lowered):
         weaknesses.append("worked problems")
     if any(word in lowered for word in ["formula", "formulas", "equation"]):
         weaknesses.append("formula recall under pressure")
@@ -695,6 +780,61 @@ def build_demo_receipt_markdown(data: StudyInput, pattern: str, topics: list[str
     )
 
 
+MAX_INPUT_CHARS = 2000
+
+
+def clip_text(text: str, limit: int = MAX_INPUT_CHARS) -> str:
+    """Trim oversized pasted input so prompts and model context stay bounded."""
+    text = text or ""
+    if len(text) <= limit:
+        return text
+    return text[:limit].rstrip()
+
+
+_DRILL_QUESTION_HEADER = re.compile(r"(?im)^[^\n]*practice\s+questions?[^\n]*$")
+_DRILL_PLAN_HEADER = re.compile(r"(?im)^[^\n]*survival\s+plan[^\n]*$")
+
+
+def _clean_bullet(line: str) -> str:
+    line = line.strip()
+    line = re.sub(r"^[-*•]\s+", "", line)
+    line = re.sub(r"^\d+[.)]\s+", "", line)
+    return line.strip()
+
+
+def split_model_plan_and_drills(generated: str) -> tuple[str, list[str]]:
+    """Separate the model's survival-plan prose from its practice questions.
+
+    Returns ``(plan_text, drill_questions)``. When the expected headers are missing we
+    return the whole text as the plan and no drills, so the deterministic drill templates
+    stay in charge rather than guessing from unstructured output.
+    """
+    text = (generated or "").strip()
+    if not text:
+        return "", []
+
+    question_header = _DRILL_QUESTION_HEADER.search(text)
+    plan_header = _DRILL_PLAN_HEADER.search(text)
+
+    drills: list[str] = []
+    if question_header:
+        q_start = question_header.end()
+        q_end = plan_header.start() if (plan_header and plan_header.start() > q_start) else len(text)
+        for raw_line in text[q_start:q_end].splitlines():
+            item = _clean_bullet(raw_line)
+            if len(item) >= 6 and not _DRILL_PLAN_HEADER.match(item):
+                drills.append(item)
+
+    if plan_header:
+        plan_text = text[plan_header.start():].strip()
+    elif question_header:
+        plan_text = text[:question_header.start()].strip() or text
+    else:
+        plan_text = text
+
+    return plan_text, drills[:5]
+
+
 def build_rescue_plan(
     student_name: str,
     subject: str,
@@ -705,26 +845,28 @@ def build_rescue_plan(
     confidence: int,
 ) -> StudyPlan:
     data = StudyInput(
-        student_name=student_name,
-        subject=subject,
+        student_name=clip_text(student_name, 120),
+        subject=clip_text(subject, 300),
         time_left_minutes=int(time_left_minutes or 60),
         exam_format=exam_format,
-        panic_note=panic_note,
-        known_material=known_material,
+        panic_note=clip_text(panic_note),
+        known_material=clip_text(known_material),
         confidence=int(confidence or 1),
     )
-    topics = extract_study_topics(known_material, panic_note)
-    panic = detect_panic(panic_note)
-    weaknesses = detect_weaknesses(panic_note)
+    topics = extract_study_topics(data.known_material, data.panic_note)
+    panic = detect_panic(data.panic_note)
+    weaknesses = detect_weaknesses(data.panic_note)
     pattern = panic_pattern(data, weaknesses, panic)
     focus, tactic = FORMAT_WEIGHTS.get(exam_format, FORMAT_WEIGHTS["Mixed"])
     blocks = time_blocks(data.time_left_minutes)
     generated, note = model_rescue(data, topics)
 
-    if generated:
-        rescue_body = generated
+    model_plan_text, model_drills = split_model_plan_and_drills(generated) if generated else ("", [])
+
+    if model_plan_text:
+        rescue_body = model_plan_text
     else:
-        name = compact(student_name) or "You"
+        name = compact(data.student_name) or "You"
         topic_text = ", ".join(topics[:4]) if topics else "the highest-probability topics from your class notes"
         weak_text = ", ".join(weaknesses) if weaknesses else "the exact place you lose marks"
         rescue_body = (
@@ -735,8 +877,21 @@ def build_rescue_plan(
             f"4. In the last block, read only that sheet and stop adding new topics."
         )
 
+    if len(model_drills) >= 3:
+        drills = list(model_drills[:5])
+        for template_drill in fallback_drills(subject, topics, exam_format):
+            if len(drills) >= 5:
+                break
+            drills.append(template_drill)
+        drill_source = "MiniCPM-generated drills"
+    else:
+        drills = fallback_drills(subject, topics, exam_format)
+        drill_source = "built-in template drills"
+
+    note = f"{note} Drill source: {drill_source}."
+
     rescue_plan_markdown = "### Rescue plan\n\n" + rescue_body
-    drill_markdown = "### Drill deck\n\n" + "\n".join(f"- {drill}" for drill in fallback_drills(subject, topics, exam_format))
+    drill_markdown = "### Drill deck\n\n" + "\n".join(f"- {drill}" for drill in drills)
     triage_lines = [
         f"- Panic pattern: {pattern}",
         f"- Format focus: {focus} - {tactic}",
