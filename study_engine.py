@@ -395,7 +395,18 @@ def accelerator_available() -> bool:
     return accelerator not in {"", "none", "cpu-basic", "cpu-upgrade"}
 
 
+def is_zero_gpu() -> bool:
+    if os.getenv("SPACES_ZERO_GPU"):
+        return True
+    return os.getenv("ACCELERATOR", "").strip().lower() in {"zero-gpu", "zerogpu", "zero-a10g"}
+
+
 def should_preload_transformer_model() -> bool:
+    # On ZeroGPU the GPU is attached only inside @spaces.GPU calls, so an import-time
+    # preload runs with no GPU: it wastes cold-start time and can cache a CPU-bound
+    # pipeline. The model loads correctly on the first GPU call instead, so skip it here.
+    if is_zero_gpu():
+        return False
     configured = os.getenv("PRELOAD_TRANSFORMER_MODEL")
     if configured is not None:
         return bool_env("PRELOAD_TRANSFORMER_MODEL")
@@ -843,6 +854,7 @@ def build_rescue_plan(
     panic_note: str,
     known_material: str,
     confidence: int,
+    force_fallback: bool = False,
 ) -> StudyPlan:
     data = StudyInput(
         student_name=clip_text(student_name, 120),
@@ -859,13 +871,16 @@ def build_rescue_plan(
     pattern = panic_pattern(data, weaknesses, panic)
     focus, tactic = FORMAT_WEIGHTS.get(exam_format, FORMAT_WEIGHTS["Mixed"])
     blocks = time_blocks(data.time_left_minutes)
-    try:
-        generated, note = model_rescue(data, topics)
-    except Exception as exc:  # a model-path error must never crash the whole packet
-        generated, note = None, (
-            f"Using fallback study engine after a model-path error "
-            f"({type(exc).__name__}: {str(exc)[:160]}); fallback used."
-        )
+    if force_fallback:
+        generated, note = None, "Deterministic fallback used for reliability (model path skipped)."
+    else:
+        try:
+            generated, note = model_rescue(data, topics)
+        except Exception as exc:  # a model-path error must never crash the whole packet
+            generated, note = None, (
+                f"Using fallback study engine after a model-path error "
+                f"({type(exc).__name__}: {str(exc)[:160]}); fallback used."
+            )
 
     try:
         model_plan_text, model_drills = split_model_plan_and_drills(generated) if generated else ("", [])

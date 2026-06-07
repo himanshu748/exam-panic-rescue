@@ -776,6 +776,26 @@ FOOTER_HTML = """
 
 
 @spaces.GPU(duration=120)
+def _gpu_build_plan(
+    student_name: str,
+    subject: str,
+    time_left_minutes: int,
+    exam_format: str,
+    panic_note: str,
+    known_material: str,
+    confidence: int,
+):
+    return build_rescue_plan(
+        student_name,
+        subject,
+        time_left_minutes,
+        exam_format,
+        panic_note,
+        known_material,
+        confidence,
+    )
+
+
 def generate(
     student_name: str,
     subject: str,
@@ -785,15 +805,30 @@ def generate(
     known_material: str,
     confidence: int,
 ):
-    plan = build_rescue_plan(
-        student_name,
-        subject,
-        time_left_minutes,
-        exam_format,
-        panic_note,
-        known_material,
-        confidence,
-    )
+    try:
+        plan = _gpu_build_plan(
+            student_name,
+            subject,
+            time_left_minutes,
+            exam_format,
+            panic_note,
+            known_material,
+            confidence,
+        )
+    except Exception:
+        # A ZeroGPU worker timeout/abort is raised here in the main process and is not
+        # catchable inside the GPU call, so fall back to the deterministic packet rather
+        # than surfacing an error to the student.
+        plan = build_rescue_plan(
+            student_name,
+            subject,
+            time_left_minutes,
+            exam_format,
+            panic_note,
+            known_material,
+            confidence,
+            force_fallback=True,
+        )
     return (
         plan.rescue_plan_markdown,
         plan.drill_markdown,
