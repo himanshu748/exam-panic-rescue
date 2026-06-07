@@ -1010,7 +1010,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
         ]
         gr.HTML(CLAIM_STATUS_HTML, container=False)
         gr.HTML(FOOTER_HTML, container=False)
-    run.click(generate, inputs=inputs, outputs=outputs, scroll_to_output=True)
+    run.click(generate, inputs=inputs, outputs=outputs, scroll_to_output=True, api_name="generate")
     example.click(load_example, outputs=inputs, queue=False)
     for case_button, case_index in case_buttons:
         case_button.click(CASE_LOADERS[case_index], outputs=inputs, queue=False)
