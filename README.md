@@ -83,6 +83,17 @@ ZeroGPU Space route:
 
 The generation handler is decorated with `@spaces.GPU(duration=120)`. Hugging Face ZeroGPU currently gives PRO and Team users 40 minutes/day of included GPU quota, so final demo prep should use short smoke runs rather than repeated full generations.
 
+### Choosing a model
+
+`MODEL_ID` selects the small model. The default is `openbmb/MiniCPM4.1-8B` (8B, well under the `<=32B` rule). You can also run a sub-4B model — useful for the Tiny Titan angle:
+
+```bash
+MODEL_ID=openbmb/MiniCPM4-0.5B USE_LOCAL_MODEL=1 python app.py   # 0.5B
+MODEL_ID=openbmb/MiniCPM5-1B   USE_LOCAL_MODEL=1 python app.py   # 1B
+```
+
+Whatever runs, the on-screen runtime note reports the exact model and its size (for example, `Generated with openbmb/MiniCPM4-0.5B (0.5B) on CUDA/ZeroGPU`), so the model that produced the plan is never ambiguous. When the model is available it also writes the five practice drills directly; if it is unavailable the app falls back to built-in template drills so the packet is always complete.
+
 Optional local `llama.cpp` mode:
 
 ```bash
@@ -133,13 +144,9 @@ python scripts/readiness_check.py
 
 The readiness cases are public JSONL so reviewers can inspect or reuse the tiny eval seed. They are not a fine-tuning claim by themselves.
 
-Submission preflight:
-
-```bash
-python scripts/preflight_check.py
-```
-
-The full preflight includes external evidence checks, so it will continue to report missing final public links until the demo video and social assets exist.
+These two commands are the public validation path. Deeper submission/evidence checks live in
+internal scripts that are intentionally kept out of the public repo (see `.hfignore`), so they are
+not part of what reviewers need to run.
 
 See [docs/field-notes.md](docs/field-notes.md) for the public build report draft.
 See [data/app_traces_public.jsonl](data/app_traces_public.jsonl) for public-safe app traces with inputs, generated outputs, validation flags, and privacy labels.
