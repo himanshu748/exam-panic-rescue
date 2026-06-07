@@ -609,6 +609,40 @@ CSS = """
   line-height: 1.5;
 }
 
+.hackathon-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+  padding: 14px;
+  border: 1px solid rgba(7, 22, 19, 0.22);
+  border-radius: 18px;
+  background: #fffaf0;
+}
+
+.hackathon-footer span {
+  border: 1px solid rgba(0, 88, 68, 0.30);
+  border-radius: 999px;
+  background: #fffef9;
+  color: var(--green-dark);
+  font-size: 13px;
+  font-weight: 850;
+  letter-spacing: 0.04em;
+  padding: 6px 12px;
+}
+
+.runtime-note-tag {
+  display: inline-block;
+  margin: 0 0 6px;
+  color: var(--green-dark);
+  font-size: 13px;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .primary-action button,
   .secondary-action button {
@@ -728,6 +762,16 @@ CLAIM_STATUS_HTML = """
     <div class="budget-card"><b>Default target</b><span>OpenBMB MiniCPM stays the submission-aligned model path when hardware can run it.</span></div>
   </section>
 </details>
+"""
+
+
+FOOTER_HTML = """
+<footer class="hackathon-footer">
+  <span>Built for the Build Small Hackathon</span>
+  <span>Backyard AI track</span>
+  <span>OpenBMB MiniCPM · ≤32B</span>
+  <span>Runs as a Gradio Space on Hugging Face</span>
+</footer>
 """
 
 
@@ -930,7 +974,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     elem_classes=["panel"],
                 )
                 drill_output = gr.Markdown(
-                    value="### Drill deck\n\nThe drills will appear here after generation.",
+                    value="### Drill deck\n\nFive drills appear here after generation — written by MiniCPM when the model runs, with built-in templates as a reliable fallback.",
                     elem_classes=["panel"],
                 )
                 triage_output = gr.Markdown(
@@ -951,7 +995,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                 )
                 gr.HTML('<div class="runtime-label">Runtime note</div>', container=False)
                 model_note = gr.Markdown(
-                    value="No generation yet. This Space calls OpenBMB MiniCPM on ZeroGPU only after you build a packet.",
+                    value="No generation yet. When you build a packet, this Space runs a small model (default OpenBMB MiniCPM4.1-8B, under the ≤32B rule) on ZeroGPU, or a deterministic fallback on CPU. The note here always reports exactly what ran.",
                     elem_id="model-note",
                 )
 
@@ -965,15 +1009,15 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
             model_note,
         ]
         gr.HTML(CLAIM_STATUS_HTML, container=False)
+        gr.HTML(FOOTER_HTML, container=False)
     run.click(generate, inputs=inputs, outputs=outputs, scroll_to_output=True)
-    panic_note.submit(generate, inputs=inputs, outputs=outputs, scroll_to_output=True)
     example.click(load_example, outputs=inputs, queue=False)
     for case_button, case_index in case_buttons:
         case_button.click(CASE_LOADERS[case_index], outputs=inputs, queue=False)
 
 
 if __name__ == "__main__":
-    demo.queue().launch(
+    demo.queue(default_concurrency_limit=1).launch(
         server_name=os.getenv("GRADIO_SERVER_NAME", "0.0.0.0"),
         server_port=int(os.getenv("GRADIO_SERVER_PORT", "7860")),
     )
