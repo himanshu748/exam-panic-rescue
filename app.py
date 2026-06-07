@@ -962,10 +962,10 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                 time_left_minutes = gr.Slider(
                     label="Minutes left",
                     minimum=15,
-                    maximum=720,
+                    maximum=1440,
                     value=EXAMPLE_INPUT["time_left_minutes"],
                     step=15,
-                    info="The plan changes if there are 45 minutes vs. a full day.",
+                    info="From 15 minutes up to a full day (1440 min). The plan changes with the time you have.",
                 )
                 with gr.Row():
                     run = gr.Button("Build my rescue packet", variant="primary", elem_classes=["primary-action"])
