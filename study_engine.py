@@ -859,9 +859,18 @@ def build_rescue_plan(
     pattern = panic_pattern(data, weaknesses, panic)
     focus, tactic = FORMAT_WEIGHTS.get(exam_format, FORMAT_WEIGHTS["Mixed"])
     blocks = time_blocks(data.time_left_minutes)
-    generated, note = model_rescue(data, topics)
+    try:
+        generated, note = model_rescue(data, topics)
+    except Exception as exc:  # a model-path error must never crash the whole packet
+        generated, note = None, (
+            f"Using fallback study engine after a model-path error "
+            f"({type(exc).__name__}: {str(exc)[:160]}); fallback used."
+        )
 
-    model_plan_text, model_drills = split_model_plan_and_drills(generated) if generated else ("", [])
+    try:
+        model_plan_text, model_drills = split_model_plan_and_drills(generated) if generated else ("", [])
+    except Exception:
+        model_plan_text, model_drills = (generated or ""), []
 
     if model_plan_text:
         rescue_body = model_plan_text
