@@ -16,6 +16,7 @@ from study_engine import (
     NEMOTRON_FALLBACK_MODEL_ID,
     build_rescue_plan,
     clip_text,
+    coach_state,
     cohere_quality_review,
     cohere_review_text_from_response,
     detect_panic,
@@ -105,6 +106,22 @@ class StudyEngineTest(unittest.TestCase):
     def test_clip_text_bounds_long_input(self):
         self.assertEqual(len(clip_text("a" * 5000, 2000)), 2000)
         self.assertEqual(clip_text("short"), "short")
+
+    def test_coach_state_walks_through_blocks(self):
+        blocks = [("Reset", 5), ("Core", 30), ("Final", 10)]  # 45 min total
+        s0 = coach_state(blocks, 0)
+        self.assertFalse(s0["done"])
+        self.assertEqual(s0["current"], "Reset")
+        self.assertEqual(s0["next"], "Core")
+        self.assertLessEqual(s0["remaining_s"], 5 * 60)
+        s1 = coach_state(blocks, 6 * 60)  # 6 min in -> Core
+        self.assertEqual(s1["current"], "Core")
+        self.assertEqual(s1["next"], "Final")
+        s_end = coach_state(blocks, 50 * 60)
+        self.assertTrue(s_end["done"])
+
+    def test_coach_state_handles_empty_schedule(self):
+        self.assertTrue(coach_state([], 0)["done"])
 
     def test_triage_names_topics_to_skip_when_many(self):
         plan = build_rescue_plan(

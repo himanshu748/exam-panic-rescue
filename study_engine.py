@@ -215,6 +215,32 @@ def time_blocks(minutes: int) -> list[tuple[str, int]]:
     return [(label, block_minutes) for label, block_minutes in zip(labels, allocation)]
 
 
+def coach_state(blocks: list[tuple[str, int]], elapsed_seconds: float) -> dict:
+    """Given a triage schedule and elapsed seconds, return the live-coach state.
+
+    Pure and deterministic so it can be unit-tested without the UI. Returns the current
+    block, seconds remaining in it, the next block, and progress, or done=True at the end.
+    """
+    positive = [(label, mins) for label, mins in blocks if mins > 0]
+    total_min = sum(mins for _, mins in positive)
+    if total_min <= 0:
+        return {"done": True, "current": None, "remaining_s": 0, "next": None,
+                "index": 0, "count": 0, "total_s": 0, "elapsed_s": int(elapsed_seconds)}
+    elapsed_min = max(0.0, elapsed_seconds) / 60.0
+    acc = 0
+    for i, (label, mins) in enumerate(positive):
+        if elapsed_min < acc + mins:
+            remaining_s = int(round((acc + mins - elapsed_min) * 60))
+            nxt = positive[i + 1][0] if i + 1 < len(positive) else None
+            return {"done": False, "current": label, "remaining_s": remaining_s, "next": nxt,
+                    "index": i, "count": len(positive), "total_s": total_min * 60,
+                    "elapsed_s": int(elapsed_seconds)}
+        acc += mins
+    return {"done": True, "current": None, "remaining_s": 0, "next": None,
+            "index": len(positive), "count": len(positive), "total_s": total_min * 60,
+            "elapsed_s": int(elapsed_seconds)}
+
+
 def build_prompt(data: StudyInput, topics: list[str]) -> str:
     focus, tactic = FORMAT_WEIGHTS.get(data.exam_format, FORMAT_WEIGHTS["Mixed"])
     return f"""Student: {compact(data.student_name) or "student"}
