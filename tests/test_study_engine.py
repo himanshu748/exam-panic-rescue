@@ -149,6 +149,15 @@ class StudyEngineTest(unittest.TestCase):
         self.assertIn("Final Sheet", plan.final_sheet_html)
         self.assertIn("Drill deck", plan.drill_markdown)
 
+    def test_build_rescue_plan_accepts_model_choice(self):
+        plan = build_rescue_plan(
+            student_name="Aarav", subject="Physics", time_left_minutes=120, exam_format="Mixed",
+            panic_note="I blank on numericals", known_material="kinetic energy, power", confidence=2,
+            model_id="nvidia/Nemotron-Mini-4B-Instruct",
+        )
+        self.assertIn("Rescue plan", plan.rescue_plan_markdown)
+        self.assertIn("Drill deck", plan.drill_markdown)
+
     def test_model_size_label_marks_tiny_titan_paths(self):
         self.assertEqual(model_size_label("openbmb/MiniCPM4.1-8B"), "8B")
         self.assertEqual(model_size_label("openbmb/MiniCPM4-0.5B"), "0.5B")

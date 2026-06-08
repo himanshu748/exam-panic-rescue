@@ -842,6 +842,7 @@ def _gpu_build_plan(
     panic_note: str,
     known_material: str,
     confidence: int,
+    model_choice: str = "openbmb/MiniCPM4.1-8B",
 ):
     return build_rescue_plan(
         student_name,
@@ -851,6 +852,7 @@ def _gpu_build_plan(
         panic_note,
         known_material,
         confidence,
+        model_id=model_choice,
     )
 
 
@@ -862,6 +864,7 @@ def generate(
     panic_note: str,
     known_material: str,
     confidence: int,
+    model_choice: str = "openbmb/MiniCPM4.1-8B",
 ):
     try:
         plan = _gpu_build_plan(
@@ -872,6 +875,7 @@ def generate(
             panic_note,
             known_material,
             confidence,
+            model_choice,
         )
     except Exception:
         # A ZeroGPU worker timeout/abort is raised here in the main process and is not
@@ -1023,6 +1027,17 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                         "Upload a photo, then click Extract — OpenBMB MiniCPM-V reads it and fills the topics box above. Always check what it found.",
                         elem_id="model-note",
                     )
+                with gr.Accordion("⚙️ Advanced: choose the small model", open=False):
+                    model_choice = gr.Dropdown(
+                        label="Generation model (all ≤32B)",
+                        choices=[
+                            ("OpenBMB MiniCPM4.1-8B — default", "openbmb/MiniCPM4.1-8B"),
+                            ("NVIDIA Nemotron-Mini-4B", "nvidia/Nemotron-Mini-4B-Instruct"),
+                            ("OpenBMB MiniCPM5-1B — tiny (≤4B)", "openbmb/MiniCPM5-1B"),
+                        ],
+                        value="openbmb/MiniCPM4.1-8B",
+                        info="Pick which small model writes your plan. The runtime note shows exactly what ran.",
+                    )
                 with gr.Row():
                     exam_format = gr.Dropdown(
                         label="Exam format",
@@ -1134,7 +1149,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
         ]
         gr.HTML(CLAIM_STATUS_HTML, container=False)
         gr.HTML(FOOTER_HTML, container=False)
-    run.click(generate, inputs=inputs, outputs=outputs, scroll_to_output=True, api_name="generate")
+    run.click(generate, inputs=inputs + [model_choice], outputs=outputs, scroll_to_output=True, api_name="generate")
 
     def _start_coach(minutes):
         return time.time(), gr.Timer(active=True)

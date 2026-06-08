@@ -625,7 +625,7 @@ def transformer_rescue(model_id: str, data: StudyInput, topics: list[str]) -> tu
     return generated, f"Generated with {label} on {TRANSFORMER_DEVICE_NOTE}."
 
 
-def model_rescue(data: StudyInput, topics: list[str]) -> tuple[str | None, str]:
+def model_rescue(data: StudyInput, topics: list[str], model_id: str | None = None) -> tuple[str | None, str]:
     if not USE_LOCAL_MODEL:
         return None, LOCAL_MODEL_DISABLED_NOTE
 
@@ -666,9 +666,10 @@ def model_rescue(data: StudyInput, topics: list[str]) -> tuple[str | None, str]:
             source = LLAMA_CPP_MODEL_PATH or f"{LLAMA_CPP_REPO_ID}:{LLAMA_CPP_FILENAME}"
             return generated, f"Generated locally with llama-cpp-python model {source}."
 
-    generated, note = transformer_rescue(DEFAULT_MODEL_ID, data, topics)
+    primary = (model_id or "").strip() or DEFAULT_MODEL_ID
+    generated, note = transformer_rescue(primary, data, topics)
     if not generated:
-        if nemotron_fallback_enabled():
+        if nemotron_fallback_enabled() and primary != NEMOTRON_FALLBACK_MODEL_ID:
             fallback_generated, fallback_note = transformer_rescue(NEMOTRON_FALLBACK_MODEL_ID, data, topics)
             if fallback_generated:
                 return fallback_generated, fallback_note.replace(" on ", " fallback on ", 1)
@@ -938,6 +939,7 @@ def build_rescue_plan(
     known_material: str,
     confidence: int,
     force_fallback: bool = False,
+    model_id: str | None = None,
 ) -> StudyPlan:
     data = StudyInput(
         student_name=clip_text(student_name, 120),
@@ -958,7 +960,7 @@ def build_rescue_plan(
         generated, note = None, "Deterministic fallback used for reliability (model path skipped)."
     else:
         try:
-            generated, note = model_rescue(data, topics)
+            generated, note = model_rescue(data, topics, model_id=model_id)
         except Exception as exc:  # a model-path error must never crash the whole packet
             generated, note = None, (
                 f"Using fallback study engine after a model-path error "
@@ -990,7 +992,7 @@ def build_rescue_plan(
             if len(drills) >= 5:
                 break
             drills.append(template_drill)
-        drill_source = "MiniCPM-generated drills"
+        drill_source = "model-written drills"
     else:
         drills = fallback_drills(subject, topics, exam_format)
         drill_source = "built-in template drills"
