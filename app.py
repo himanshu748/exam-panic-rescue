@@ -407,7 +407,7 @@ CSS = """
   opacity: 1 !important;
 }
 
-.primary-action button {
+.primary-action button, button.primary-action {
   background: var(--green) !important;
   border-color: var(--green) !important;
   border-radius: 16px !important;
@@ -417,17 +417,42 @@ CSS = """
   box-shadow: 0 12px 28px rgba(0, 108, 91, 0.24);
 }
 
-.primary-action button:hover {
+.primary-action button:hover, button.primary-action:hover {
   background: var(--green-dark) !important;
 }
 
-.secondary-action button {
+.secondary-action button, button.secondary-action {
   border-color: var(--coral) !important;
   color: var(--coral) !important;
   background: #fff7ed !important;
   border-radius: 16px !important;
   font-weight: 800 !important;
   min-height: 46px;
+}
+
+/* Force the cream/light design even when the visitor's device is in dark mode. */
+.gradio-container, .gradio-container.dark, .dark {
+  color-scheme: light;
+  --body-background-fill: var(--paper);
+  --background-fill-primary: var(--field);
+  --background-fill-secondary: var(--card-solid);
+  --block-background-fill: var(--card);
+  --block-label-background-fill: var(--card);
+  --block-title-background-fill: var(--card);
+  --input-background-fill: var(--field);
+  --body-text-color: var(--ink);
+  --body-text-color-subdued: var(--muted);
+  --block-label-text-color: var(--ink);
+  --block-title-text-color: var(--ink);
+  --block-info-text-color: var(--muted);
+  --border-color-primary: rgba(7, 22, 19, 0.34);
+  --border-color-accent: rgba(0, 88, 68, 0.34);
+}
+.gradio-container.dark .input-card,
+.gradio-container.dark .output-stack,
+.dark .input-card,
+.dark .output-stack {
+  background: var(--card) !important;
 }
 
 #model-note {
@@ -943,8 +968,10 @@ def read_aloud(final_sheet_html):
     try:
         path, note = _gpu_read_aloud(text, out)
     except Exception:
-        return None, "Read-aloud is busy right now (GPU hiccup). Try again in a moment."
-    return path, note
+        return gr.update(visible=False), "Read-aloud is busy right now (GPU hiccup). Try again in a moment."
+    if path:
+        return gr.update(value=path, visible=True), note
+    return gr.update(visible=False), note
 
 
 @spaces.GPU(duration=120)
@@ -1002,6 +1029,21 @@ def load_math_case():
 
 
 CASE_LOADERS = [load_biology_case, load_physics_case, load_history_case, load_math_case]
+
+
+# The whole design is built for a light/cream surface, so force light mode even when the
+# visitor's device is in dark mode (otherwise dark Gradio surfaces hide the dark label text).
+FORCE_LIGHT_JS = """
+() => {
+  try {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('__theme') !== 'light') {
+      url.searchParams.set('__theme', 'light');
+      window.location.replace(url.toString());
+    }
+  } catch (e) {}
+}
+"""
 
 
 with gr.Blocks(title="Exam Panic Rescue") as demo:
@@ -1072,8 +1114,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     )
                     extract_btn = gr.Button("Extract topics from photo", elem_classes=["secondary-action"])
                     vision_note = gr.Markdown(
-                        "Upload a photo, then click Extract — OpenBMB MiniCPM-V reads it and fills the topics box above. Always check what it found.",
-                        elem_id="model-note",
+                        "Upload a photo, then click Extract — OpenBMB MiniCPM-V reads it and fills the topics box above. Always check what it found."
                     )
                 with gr.Accordion("⚙️ Advanced: choose the small model", open=False):
                     model_choice = gr.Dropdown(
@@ -1177,29 +1218,27 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     value='<div class="final-sheet"><h3>Final sheet</h3><p>Build a packet to create the one-page sheet to read before the exam.</p></div>',
                     elem_classes=["panel"],
                 )
-                download_btn = gr.DownloadButton(
-                    "⬇ Download / print my packet (.md)",
-                    elem_classes=["secondary-action"],
-                )
-                read_btn = gr.Button("🔊 Read my final sheet aloud", elem_classes=["secondary-action"])
-                read_audio = gr.Audio(label="Final sheet, read aloud", type="filepath", interactive=False)
+                with gr.Row():
+                    download_btn = gr.DownloadButton("⬇ Download / print", elem_classes=["secondary-action"])
+                    read_btn = gr.Button("🔊 Read aloud", elem_classes=["secondary-action"])
+                read_audio = gr.Audio(label="Final sheet, read aloud", type="filepath", interactive=False, visible=False)
                 read_note = gr.Markdown(
-                    "Build a packet, then have OpenBMB VoxCPM2 read your final sheet aloud while you pace.",
-                    elem_id="model-note",
+                    "Tip: build a packet, then tap Read aloud to hear your final sheet (OpenBMB VoxCPM2)."
                 )
-                demo_receipt_output = gr.Markdown(
-                    value="### Study receipt\n\nA short before/after receipt will appear here after generation.",
-                    elem_classes=["panel"],
-                )
-                field_note_output = gr.Markdown(
-                    value="### Field note prompt\n\nAfter a real study block, use this section to capture honest feedback. Do not invent results.",
-                    elem_classes=["panel"],
-                )
-                gr.HTML('<div class="runtime-label">Runtime note</div>', container=False)
-                model_note = gr.Markdown(
-                    value="No generation yet. When you build a packet, this Space runs a small model (default OpenBMB MiniCPM4.1-8B, under the ≤32B rule) on ZeroGPU, or a deterministic fallback on CPU. The note here always reports exactly what ran.",
-                    elem_id="model-note",
-                )
+                with gr.Accordion("More — study receipt · field note · runtime", open=False):
+                    demo_receipt_output = gr.Markdown(
+                        value="### Study receipt\n\nA short before/after receipt will appear here after generation.",
+                        elem_classes=["panel"],
+                    )
+                    field_note_output = gr.Markdown(
+                        value="### Field note prompt\n\nAfter a real study block, use this section to capture honest feedback. Do not invent results.",
+                        elem_classes=["panel"],
+                    )
+                    gr.HTML('<div class="runtime-label">Runtime note</div>', container=False)
+                    model_note = gr.Markdown(
+                        value="No generation yet. When you build a packet, this Space runs a small model (default OpenBMB MiniCPM4.1-8B, ≤32B) on ZeroGPU, or a deterministic fallback on CPU. This note always reports exactly what ran.",
+                        elem_id="model-note",
+                    )
 
         outputs = [
             rescue_output,
@@ -1212,6 +1251,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
         ]
         gr.HTML(CLAIM_STATUS_HTML, container=False)
         gr.HTML(FOOTER_HTML, container=False)
+    demo.load(js=FORCE_LIGHT_JS)
     run.click(generate, inputs=inputs + [model_choice], outputs=outputs, scroll_to_output=True, api_name="generate")
 
     def _start_coach(minutes):
