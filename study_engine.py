@@ -677,6 +677,63 @@ def model_rescue(data: StudyInput, topics: list[str]) -> tuple[str | None, str]:
     return generated, note
 
 
+VISION_MODEL_ID = os.getenv("VISION_MODEL_ID", "openbmb/MiniCPM-V-4_5")
+VISION_QUESTION = (
+    "This is a photo of a student's syllabus, timetable, textbook page, or notes. "
+    "List ONLY the exam topics or chapter headings you can see, as a short comma-separated "
+    "list. No introduction and no explanation - just the comma-separated topics."
+)
+
+
+def extract_topics_from_image(image_path: str) -> tuple[str, str]:
+    """Read a photo of a syllabus/notes with MiniCPM-V and return (topics_text, status_note).
+
+    The vision model is loaded fresh and freed after each call so it never co-resides with the
+    text model in memory (both are ~8B and would not fit together). Any failure returns an empty
+    string plus a friendly note, so the caller keeps working and the student can just type topics.
+    """
+    if not image_path:
+        return "", "No image provided - upload a photo or type your topics."
+    try:
+        import torch
+        from PIL import Image
+        from transformers import AutoModel, AutoTokenizer
+    except Exception as exc:  # pragma: no cover - depends on runtime deps
+        return "", f"Vision support is unavailable here ({exc}). Type your topics instead."
+
+    model = None
+    try:
+        image = Image.open(image_path).convert("RGB")
+        model = AutoModel.from_pretrained(
+            VISION_MODEL_ID,
+            trust_remote_code=True,
+            attn_implementation="sdpa",
+            torch_dtype=torch.bfloat16,
+        ).eval()
+        if torch.cuda.is_available():
+            model = model.cuda()
+        tokenizer = AutoTokenizer.from_pretrained(VISION_MODEL_ID, trust_remote_code=True)
+        answer = model.chat(msgs=[{"role": "user", "content": [image, VISION_QUESTION]}], tokenizer=tokenizer)
+        topics = clip_text(compact(answer), 600)
+        if not topics:
+            return "", "Could not find topics in that photo. Try a clearer image or type them."
+        return topics, f"Topics read from your photo with {VISION_MODEL_ID}. Check them before you rely on them."
+    except Exception as exc:
+        return "", f"Could not read the photo ({type(exc).__name__}). Type your topics instead."
+    finally:
+        try:
+            import gc
+
+            import torch
+            if model is not None:
+                del model
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except Exception:
+            pass
+
+
 def fallback_drills(subject: str, topics: list[str], exam_format: str) -> list[str]:
     topic_list = topics or [compact(subject) or "the most likely exam topic"]
     drills = []

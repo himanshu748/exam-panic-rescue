@@ -18,7 +18,14 @@ except ImportError:  # Local tests should not require the HF Spaces runtime pack
 
     spaces = _SpacesFallback()
 
-from study_engine import DEMO_CASES, EXAMPLE_INPUT, build_rescue_plan, coach_state, time_blocks
+from study_engine import (
+    DEMO_CASES,
+    EXAMPLE_INPUT,
+    build_rescue_plan,
+    coach_state,
+    extract_topics_from_image,
+    time_blocks,
+)
 
 
 CSS = """
@@ -891,6 +898,16 @@ def generate(
     )
 
 
+@spaces.GPU(duration=120)
+def extract_from_photo(image_path):
+    if not image_path:
+        return gr.update(), "Upload a photo first, or just type your topics."
+    topics, note = extract_topics_from_image(image_path)
+    if topics:
+        return topics, note
+    return gr.update(), note
+
+
 def load_example():
     return (
         EXAMPLE_INPUT["student_name"],
@@ -995,6 +1012,17 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     lines=5,
                     info="Paste chapter headings, topics, mistakes, or rough notes.",
                 )
+                with gr.Accordion("📷 Or snap your syllabus / notes", open=False):
+                    syllabus_image = gr.Image(
+                        label="Photo of a syllabus, timetable, textbook page, or notes",
+                        type="filepath",
+                        height=180,
+                    )
+                    extract_btn = gr.Button("Extract topics from photo", elem_classes=["secondary-action"])
+                    vision_note = gr.Markdown(
+                        "Upload a photo, then click Extract — OpenBMB MiniCPM-V reads it and fills the topics box above. Always check what it found.",
+                        elem_id="model-note",
+                    )
                 with gr.Row():
                     exam_format = gr.Dropdown(
                         label="Exam format",
@@ -1137,6 +1165,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
     coach_start_btn.click(_start_coach, inputs=[time_left_minutes], outputs=[coach_start, coach_timer])
     coach_reset_btn.click(_reset_coach, outputs=[coach_start, coach_timer, coach_display])
     coach_timer.tick(_tick_coach, inputs=[coach_start, time_left_minutes], outputs=[coach_display])
+    extract_btn.click(extract_from_photo, inputs=[syllabus_image], outputs=[known_material, vision_note], api_name="extract_topics")
     example.click(load_example, outputs=inputs, queue=False)
     for case_button, case_index in case_buttons:
         case_button.click(CASE_LOADERS[case_index], outputs=inputs, queue=False)

@@ -21,6 +21,7 @@ from study_engine import (
     cohere_review_text_from_response,
     detect_panic,
     detect_weaknesses,
+    extract_topics_from_image,
     extract_study_topics,
     extract_topics,
     generated_text_from_llama_cli_output,
@@ -119,6 +120,11 @@ class StudyEngineTest(unittest.TestCase):
         self.assertEqual(s1["next"], "Final")
         s_end = coach_state(blocks, 50 * 60)
         self.assertTrue(s_end["done"])
+
+    def test_extract_topics_from_image_handles_no_image(self):
+        topics, note = extract_topics_from_image("")
+        self.assertEqual(topics, "")
+        self.assertIn("type your topics", note.lower())
 
     def test_coach_state_handles_empty_schedule(self):
         self.assertTrue(coach_state([], 0)["done"])
