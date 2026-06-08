@@ -925,6 +925,12 @@ def build_rescue_plan(
         f"- Topics extracted: {', '.join(topics) if topics else 'none; start with your class headings'}",
         f"- Proof target: {proof_checklist(data.exam_format, topics)}",
     ]
+    skip = topics[3:6] if len(topics) > 3 else []
+    if skip:
+        triage_lines.append(
+            f"- If time runs out, drop these first: {', '.join(skip)} "
+            "(you listed them later; keep them only if you know they are high-value)."
+        )
     triage_lines.extend(f"- {label}: {minutes} min" for label, minutes in blocks if minutes > 0)
     triage_lines.append("- Boundary: verify facts with your class notes; this app plans the rescue, it does not replace the syllabus.")
     triage_markdown = "### Triage clock\n\n" + "\n".join(triage_lines)

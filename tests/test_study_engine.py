@@ -106,6 +106,26 @@ class StudyEngineTest(unittest.TestCase):
         self.assertEqual(len(clip_text("a" * 5000, 2000)), 2000)
         self.assertEqual(clip_text("short"), "short")
 
+    def test_triage_names_topics_to_skip_when_many(self):
+        plan = build_rescue_plan(
+            student_name="Aarav", subject="Physics", time_left_minutes=120, exam_format="Mixed",
+            panic_note="I go blank in numericals.",
+            known_material="work-energy theorem, kinetic energy, potential energy, power, conservation of energy",
+            confidence=2,
+        )
+        self.assertIn("drop these first", plan.triage_markdown.lower())
+        self.assertIn("conservation of energy", plan.triage_markdown)
+
+    def test_force_fallback_skips_model_and_stays_complete(self):
+        plan = build_rescue_plan(
+            student_name="Zoya", subject="History: nationalism in India", time_left_minutes=1440,
+            exam_format="Long answer", panic_note="my long answers become messy.",
+            known_material="non-cooperation movement, salt march", confidence=3, force_fallback=True,
+        )
+        self.assertIn("fallback", plan.model_note.lower())
+        self.assertIn("Final Sheet", plan.final_sheet_html)
+        self.assertIn("Drill deck", plan.drill_markdown)
+
     def test_model_size_label_marks_tiny_titan_paths(self):
         self.assertEqual(model_size_label("openbmb/MiniCPM4.1-8B"), "8B")
         self.assertEqual(model_size_label("openbmb/MiniCPM4-0.5B"), "0.5B")
