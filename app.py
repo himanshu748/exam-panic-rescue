@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import tempfile
 import time
 
@@ -26,6 +27,7 @@ from study_engine import (
     coach_state,
     extract_topics_from_image,
     packet_to_markdown,
+    synthesize_speech,
     time_blocks,
 )
 
@@ -922,6 +924,14 @@ def download_packet(rescue, drill, triage, final_sheet_html, receipt):
     return path
 
 
+@spaces.GPU(duration=120)
+def read_aloud(final_sheet_html):
+    text = re.sub(r"<[^>]+>", " ", final_sheet_html or "")
+    out = os.path.join(tempfile.gettempdir(), "exam-panic-rescue-final-sheet.wav")
+    path, note = synthesize_speech(text, out)
+    return path, note
+
+
 def load_example():
     return (
         EXAMPLE_INPUT["student_name"],
@@ -1138,6 +1148,12 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     "⬇ Download / print my packet (.md)",
                     elem_classes=["secondary-action"],
                 )
+                read_btn = gr.Button("🔊 Read my final sheet aloud", elem_classes=["secondary-action"])
+                read_audio = gr.Audio(label="Final sheet, read aloud", type="filepath", interactive=False)
+                read_note = gr.Markdown(
+                    "Build a packet, then have OpenBMB VoxCPM2 read your final sheet aloud while you pace.",
+                    elem_id="model-note",
+                )
                 demo_receipt_output = gr.Markdown(
                     value="### Study receipt\n\nA short before/after receipt will appear here after generation.",
                     elem_classes=["panel"],
@@ -1200,6 +1216,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
         inputs=[rescue_output, drill_output, triage_output, final_sheet_output, demo_receipt_output],
         outputs=download_btn,
     )
+    read_btn.click(read_aloud, inputs=[final_sheet_output], outputs=[read_audio, read_note], api_name="read_aloud")
     example.click(load_example, outputs=inputs, queue=False)
     for case_button, case_index in case_buttons:
         case_button.click(CASE_LOADERS[case_index], outputs=inputs, queue=False)

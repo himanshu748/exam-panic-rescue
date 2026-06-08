@@ -735,6 +735,47 @@ def extract_topics_from_image(image_path: str) -> tuple[str, str]:
             pass
 
 
+VOICE_MODEL_ID = os.getenv("VOICE_MODEL_ID", "openbmb/VoxCPM2")
+
+
+def synthesize_speech(text: str, out_path: str) -> tuple[str | None, str]:
+    """Read text aloud with OpenBMB VoxCPM2, writing a wav to out_path. Returns (path, note).
+
+    Loaded fresh and freed each call (kept off the text/vision models' memory). Any failure
+    returns (None, note) so the caller degrades gracefully to text-only.
+    """
+    spoken = clip_text(compact(text), 700)
+    if not spoken:
+        return None, "Nothing to read yet — build a packet first."
+    try:
+        import soundfile as sf
+
+        from voxcpm import VoxCPM
+    except Exception as exc:  # pragma: no cover - depends on runtime deps
+        return None, f"Read-aloud is unavailable here ({exc})."
+
+    model = None
+    try:
+        model = VoxCPM.from_pretrained(VOICE_MODEL_ID, load_denoiser=False)
+        wav = model.generate(text=spoken, inference_timesteps=10)
+        sf.write(out_path, wav, model.tts_model.sample_rate)
+        return out_path, f"Read aloud with {VOICE_MODEL_ID}."
+    except Exception as exc:
+        return None, f"Could not read it aloud ({type(exc).__name__})."
+    finally:
+        try:
+            import gc
+
+            import torch
+            if model is not None:
+                del model
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except Exception:
+            pass
+
+
 def fallback_drills(subject: str, topics: list[str], exam_format: str) -> list[str]:
     topic_list = topics or [compact(subject) or "the most likely exam topic"]
     drills = []
