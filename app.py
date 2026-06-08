@@ -1249,7 +1249,6 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
             field_note_output,
             model_note,
         ]
-        gr.HTML(CLAIM_STATUS_HTML, container=False)
         gr.HTML(FOOTER_HTML, container=False)
     demo.load(js=FORCE_LIGHT_JS)
     run.click(generate, inputs=inputs + [model_choice], outputs=outputs, scroll_to_output=True, api_name="generate")
