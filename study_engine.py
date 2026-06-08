@@ -678,6 +678,52 @@ def model_rescue(data: StudyInput, topics: list[str], model_id: str | None = Non
     return generated, note
 
 
+def _generic_complete(messages: list[dict], model_id: str, max_new_tokens: int = 480) -> str:
+    """Run a one-off chat completion with a cached transformer pipeline (thinking off)."""
+    generator = _generator(model_id)
+    tokenizer = getattr(generator, "tokenizer", None)
+    payload = messages
+    if tokenizer is not None and hasattr(tokenizer, "apply_chat_template"):
+        for extra in ({"enable_thinking": False}, {}):
+            try:
+                payload = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True, **extra)
+                break
+            except TypeError:
+                continue
+            except Exception:
+                break
+    result = generator(payload, max_new_tokens=max_new_tokens, do_sample=False, return_full_text=False)
+    return generated_text_from_pipeline_result(result)
+
+
+def drills_from_markdown(drill_markdown: str) -> list[str]:
+    return [re.sub(r"^[-*]\s*", "", ln.strip()) for ln in (drill_markdown or "").splitlines() if ln.strip().startswith("- ")][:5]
+
+
+def answer_drills(drill_markdown: str, subject: str, model_id: str | None = None) -> tuple[str, str]:
+    """Produce a worked answer key for the drills. Falls back to a self-check method if no model."""
+    drills = drills_from_markdown(drill_markdown)
+    if not drills:
+        return "### Worked answers\n\nBuild a packet first, then I can answer your drills.", "No drills yet."
+    if USE_LOCAL_MODEL:
+        mid = (model_id or "").strip() or DEFAULT_MODEL_ID
+        try:
+            messages = [
+                {"role": "system", "content": "You are a concise exam tutor. Answer each numbered practice question correctly in 1-2 lines. No preamble, no chain-of-thought. Keep the numbering."},
+                {"role": "user", "content": f"Subject: {compact(subject)}\nAnswer these, numbered:\n" + "\n".join(f"{i}. {d}" for i, d in enumerate(drills, 1))},
+            ]
+            text = strip_hidden_reasoning(_generic_complete(messages, mid))
+            if text:
+                return "### Worked answers\n\n" + text, f"Answers written by {mid}. Always verify against your own notes."
+        except Exception:
+            pass
+    lines = ["### Worked answers — self-check method", "", "Model answers aren't available right now, so grade yourself:"]
+    for i, drill in enumerate(drills, 1):
+        lines.append(f"{i}. {drill}")
+        lines.append("   - Attempt it closed-book, then check your notes and mark it right or wrong. Turn every wrong one into a line on your final sheet.")
+    return "\n".join(lines), "Self-check method (model answers unavailable)."
+
+
 VISION_MODEL_ID = os.getenv("VISION_MODEL_ID", "openbmb/MiniCPM-V-4_5")
 VISION_QUESTION = (
     "This is a photo of a student's syllabus, timetable, textbook page, or notes. "

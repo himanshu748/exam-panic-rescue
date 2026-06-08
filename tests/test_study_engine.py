@@ -9,6 +9,7 @@ os.environ["USE_LOCAL_MODEL"] = "0"
 ROOT = Path(__file__).resolve().parents[1]
 
 from study_engine import (
+    answer_drills,
     DEMO_CASES,
     LLAMA_CPP_FILENAME,
     LLAMA_CPP_HF_SELECTOR,
@@ -109,6 +110,15 @@ class StudyEngineTest(unittest.TestCase):
     def test_clip_text_bounds_long_input(self):
         self.assertEqual(len(clip_text("a" * 5000, 2000)), 2000)
         self.assertEqual(clip_text("short"), "short")
+
+    def test_answer_drills_fallback_self_check(self):
+        md, note = answer_drills("### Drill deck\n\n- Define mitosis\n- Explain meiosis", "Biology")
+        self.assertIn("self-check", md.lower())
+        self.assertIn("Define mitosis", md)
+
+    def test_answer_drills_without_drills(self):
+        md, note = answer_drills("### Drill deck\n\nnothing here", "Biology")
+        self.assertIn("Build a packet", md)
 
     def test_packet_to_markdown_assembles_and_strips_html(self):
         md = packet_to_markdown(

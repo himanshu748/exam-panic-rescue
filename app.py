@@ -23,6 +23,7 @@ except ImportError:  # Local tests should not require the HF Spaces runtime pack
 from study_engine import (
     DEMO_CASES,
     EXAMPLE_INPUT,
+    answer_drills,
     build_rescue_plan,
     coach_state,
     extract_topics_from_image,
@@ -932,6 +933,12 @@ def read_aloud(final_sheet_html):
     return path, note
 
 
+@spaces.GPU(duration=120)
+def show_answers(drill_markdown, subject, model_choice="openbmb/MiniCPM4.1-8B"):
+    answers, _note = answer_drills(drill_markdown, subject, model_choice)
+    return answers
+
+
 def load_example():
     return (
         EXAMPLE_INPUT["student_name"],
@@ -1136,6 +1143,11 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     value="### Drill deck\n\nFive drills appear here after generation — written by MiniCPM when the model runs, with built-in templates as a reliable fallback.",
                     elem_classes=["panel"],
                 )
+                answers_btn = gr.Button("Show worked answers", elem_classes=["secondary-action"])
+                answers_output = gr.Markdown(
+                    value="### Worked answers\n\nBuild a packet, then reveal model-written answers to self-check your drills.",
+                    elem_classes=["panel"],
+                )
                 triage_output = gr.Markdown(
                     value="### Triage clock\n\nThe time blocks will appear here after generation.",
                     elem_classes=["panel"],
@@ -1217,6 +1229,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
         outputs=download_btn,
     )
     read_btn.click(read_aloud, inputs=[final_sheet_output], outputs=[read_audio, read_note], api_name="read_aloud")
+    answers_btn.click(show_answers, inputs=[drill_output, subject, model_choice], outputs=[answers_output], api_name="show_answers")
     example.click(load_example, outputs=inputs, queue=False)
     for case_button, case_index in case_buttons:
         case_button.click(CASE_LOADERS[case_index], outputs=inputs, queue=False)
