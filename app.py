@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import time
 
 import gradio as gr
 
@@ -17,7 +18,7 @@ except ImportError:  # Local tests should not require the HF Spaces runtime pack
 
     spaces = _SpacesFallback()
 
-from study_engine import DEMO_CASES, EXAMPLE_INPUT, build_rescue_plan
+from study_engine import DEMO_CASES, EXAMPLE_INPUT, build_rescue_plan, coach_state, time_blocks
 
 
 CSS = """
@@ -643,6 +644,56 @@ CSS = """
   text-transform: uppercase;
 }
 
+.coach-card {
+  border: 1px solid rgba(7, 22, 19, 0.30);
+  border-radius: 18px;
+  background: #fffef9;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+}
+
+.coach-idle {
+  color: var(--muted);
+  font-size: 15px;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.coach-live {
+  background: radial-gradient(circle at top right, rgba(0, 108, 91, 0.16), transparent 50%), #fffef9;
+  border-color: rgba(0, 88, 68, 0.42);
+}
+
+.coach-now {
+  color: var(--green-dark);
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.coach-time {
+  font-family: Georgia, "Times New Roman", ui-serif, serif;
+  color: var(--coral);
+  font-size: clamp(34px, 6vw, 46px);
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  margin: 2px 0;
+}
+
+.coach-next {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.coach-done {
+  background: rgba(0, 108, 91, 0.12);
+  border-color: rgba(0, 88, 68, 0.42);
+  color: var(--green-dark);
+  font-size: 16px;
+  font-weight: 850;
+}
+
 @media (prefers-reduced-motion: no-preference) {
   .primary-action button,
   .secondary-action button {
@@ -1004,6 +1055,16 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
 """,
                     container=False,
                 )
+                gr.HTML('<div class="runtime-label">Live coach</div>', container=False)
+                coach_start = gr.State(None)
+                coach_display = gr.HTML(
+                    value='<div class="coach-card coach-idle">Build a packet, then press <b>Start coaching</b> to run your triage clock in real time — it tells you what to do now and pings when to switch.</div>',
+                    container=False,
+                )
+                with gr.Row():
+                    coach_start_btn = gr.Button("Start coaching", elem_classes=["primary-action"])
+                    coach_reset_btn = gr.Button("Reset", elem_classes=["secondary-action"])
+                coach_timer = gr.Timer(1.0, active=False)
                 rescue_output = gr.Markdown(
                     value="### Ready when you are\n\nPaste the real exam details, then click **Build my rescue packet**. Nothing is generated until you ask for it.",
                     elem_classes=["panel"],
@@ -1046,6 +1107,36 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
         gr.HTML(CLAIM_STATUS_HTML, container=False)
         gr.HTML(FOOTER_HTML, container=False)
     run.click(generate, inputs=inputs, outputs=outputs, scroll_to_output=True, api_name="generate")
+
+    def _start_coach(minutes):
+        return time.time(), gr.Timer(active=True)
+
+    def _reset_coach():
+        return (
+            None,
+            gr.Timer(active=False),
+            '<div class="coach-card coach-idle">Coach reset. Press <b>Start coaching</b> to run your triage clock.</div>',
+        )
+
+    def _tick_coach(start_ts, minutes):
+        if not start_ts:
+            return gr.update()
+        state = coach_state(time_blocks(int(minutes or 60)), time.time() - start_ts)
+        if state["done"]:
+            return '<div class="coach-card coach-done">Time is up. Read only your final sheet, then walk in.</div>'
+        rs = state["remaining_s"]
+        nxt = f'Next: {state["next"]}' if state["next"] else "Last block — finish strong"
+        return (
+            '<div class="coach-card coach-live">'
+            f'<div class="coach-now">Now: {state["current"]}</div>'
+            f'<div class="coach-time">{rs // 60:02d}:{rs % 60:02d} left</div>'
+            f'<div class="coach-next">{nxt} · block {state["index"] + 1}/{state["count"]}</div>'
+            "</div>"
+        )
+
+    coach_start_btn.click(_start_coach, inputs=[time_left_minutes], outputs=[coach_start, coach_timer])
+    coach_reset_btn.click(_reset_coach, outputs=[coach_start, coach_timer, coach_display])
+    coach_timer.tick(_tick_coach, inputs=[coach_start, time_left_minutes], outputs=[coach_display])
     example.click(load_example, outputs=inputs, queue=False)
     for case_button, case_index in case_buttons:
         case_button.click(CASE_LOADERS[case_index], outputs=inputs, queue=False)
