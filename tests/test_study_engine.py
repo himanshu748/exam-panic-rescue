@@ -30,6 +30,7 @@ from study_engine import (
     llama_cli_command,
     model_size_label,
     nemotron_fallback_enabled,
+    packet_to_markdown,
     panic_pattern,
     proof_checklist,
     split_model_plan_and_drills,
@@ -107,6 +108,20 @@ class StudyEngineTest(unittest.TestCase):
     def test_clip_text_bounds_long_input(self):
         self.assertEqual(len(clip_text("a" * 5000, 2000)), 2000)
         self.assertEqual(clip_text("short"), "short")
+
+    def test_packet_to_markdown_assembles_and_strips_html(self):
+        md = packet_to_markdown(
+            "### Rescue plan\n\nDo X",
+            "### Drill deck\n\n- d1",
+            "### Triage clock\n\n- Panic pattern: calm",
+            "<section><h2>Final Sheet for You</h2><p>First action</p></section>",
+            "### Study receipt\n\n- Before: ...",
+        )
+        self.assertIn("Rescue plan", md)
+        self.assertIn("Drill deck", md)
+        self.assertIn("Final Sheet for You", md)
+        self.assertIn("First action", md)
+        self.assertNotIn("<section>", md)
 
     def test_coach_state_walks_through_blocks(self):
         blocks = [("Reset", 5), ("Core", 30), ("Final", 10)]  # 45 min total

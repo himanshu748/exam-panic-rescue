@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import tempfile
 import time
 
 import gradio as gr
@@ -24,6 +25,7 @@ from study_engine import (
     build_rescue_plan,
     coach_state,
     extract_topics_from_image,
+    packet_to_markdown,
     time_blocks,
 )
 
@@ -912,6 +914,14 @@ def extract_from_photo(image_path):
     return gr.update(), note
 
 
+def download_packet(rescue, drill, triage, final_sheet_html, receipt):
+    md = packet_to_markdown(rescue, drill, triage, final_sheet_html, receipt)
+    path = os.path.join(tempfile.gettempdir(), "exam-panic-rescue-packet.md")
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write(md)
+    return path
+
+
 def load_example():
     return (
         EXAMPLE_INPUT["student_name"],
@@ -1124,6 +1134,10 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     value='<div class="final-sheet"><h3>Final sheet</h3><p>Build a packet to create the one-page sheet to read before the exam.</p></div>',
                     elem_classes=["panel"],
                 )
+                download_btn = gr.DownloadButton(
+                    "⬇ Download / print my packet (.md)",
+                    elem_classes=["secondary-action"],
+                )
                 demo_receipt_output = gr.Markdown(
                     value="### Study receipt\n\nA short before/after receipt will appear here after generation.",
                     elem_classes=["panel"],
@@ -1181,6 +1195,11 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
     coach_reset_btn.click(_reset_coach, outputs=[coach_start, coach_timer, coach_display])
     coach_timer.tick(_tick_coach, inputs=[coach_start, time_left_minutes], outputs=[coach_display])
     extract_btn.click(extract_from_photo, inputs=[syllabus_image], outputs=[known_material, vision_note], api_name="extract_topics")
+    download_btn.click(
+        download_packet,
+        inputs=[rescue_output, drill_output, triage_output, final_sheet_output, demo_receipt_output],
+        outputs=download_btn,
+    )
     example.click(load_example, outputs=inputs, queue=False)
     for case_button, case_index in case_buttons:
         case_button.click(CASE_LOADERS[case_index], outputs=inputs, queue=False)
