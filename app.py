@@ -908,10 +908,17 @@ def generate(
 
 
 @spaces.GPU(duration=120)
+def _gpu_extract_from_photo(image_path):
+    return extract_topics_from_image(image_path)
+
+
 def extract_from_photo(image_path):
     if not image_path:
         return gr.update(), "Upload a photo first, or just type your topics."
-    topics, note = extract_topics_from_image(image_path)
+    try:
+        topics, note = _gpu_extract_from_photo(image_path)
+    except Exception:
+        return gr.update(), "Photo reading is busy right now (GPU hiccup). Try again, or just type your topics in."
     if topics:
         return topics, note
     return gr.update(), note
@@ -926,17 +933,31 @@ def download_packet(rescue, drill, triage, final_sheet_html, receipt):
 
 
 @spaces.GPU(duration=120)
+def _gpu_read_aloud(text, out_path):
+    return synthesize_speech(text, out_path)
+
+
 def read_aloud(final_sheet_html):
     text = re.sub(r"<[^>]+>", " ", final_sheet_html or "")
     out = os.path.join(tempfile.gettempdir(), "exam-panic-rescue-final-sheet.wav")
-    path, note = synthesize_speech(text, out)
+    try:
+        path, note = _gpu_read_aloud(text, out)
+    except Exception:
+        return None, "Read-aloud is busy right now (GPU hiccup). Try again in a moment."
     return path, note
 
 
 @spaces.GPU(duration=120)
-def show_answers(drill_markdown, subject, model_choice="openbmb/MiniCPM4.1-8B"):
+def _gpu_show_answers(drill_markdown, subject, model_choice):
     answers, _note = answer_drills(drill_markdown, subject, model_choice)
     return answers
+
+
+def show_answers(drill_markdown, subject, model_choice="openbmb/MiniCPM4.1-8B"):
+    try:
+        return _gpu_show_answers(drill_markdown, subject, model_choice)
+    except Exception:
+        return "### Worked answers\n\nThe model is busy right now (GPU hiccup). Try again in a moment — or self-check each drill against your notes and mark it right or wrong."
 
 
 def load_example():
