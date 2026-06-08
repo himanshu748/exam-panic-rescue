@@ -427,6 +427,39 @@ def is_zero_gpu() -> bool:
     return os.getenv("ACCELERATOR", "").strip().lower() in {"zero-gpu", "zerogpu", "zero-a10g"}
 
 
+_PREFETCHED_WEIGHTS: set[str] = set()
+
+
+def ensure_weights(model_id: str) -> str:
+    """Download a model's weights to the local cache on CPU, before any GPU call.
+
+    On ZeroGPU the GPU is only held inside ``@spaces.GPU`` functions and is bound by a
+    strict duration budget. A first-use cold download of a multi-GB model *inside* that
+    budget can exceed it and get aborted, which forces the deterministic fallback even
+    though the model is perfectly capable of running. Prefetching the snapshot here -
+    in the main process, with no GPU held and no time budget - means the GPU call only
+    pays the fast load-from-cache + generate cost and comfortably fits the window.
+
+    Best-effort and idempotent: a failed prefetch never raises (the model path will
+    still attempt its own download), and each repo is only fetched once per process.
+    """
+    mid = (model_id or "").strip()
+    if not mid or mid in _PREFETCHED_WEIGHTS:
+        return ""
+    # Only prefetch on real model + accelerator environments; skip CPU-only dev and CI
+    # so importing or unit-testing the engine never triggers multi-GB downloads.
+    if not USE_LOCAL_MODEL or not (is_zero_gpu() or accelerator_available()):
+        return ""
+    try:
+        from huggingface_hub import snapshot_download
+
+        snapshot_download(repo_id=mid)
+        _PREFETCHED_WEIGHTS.add(mid)
+        return f"prefetched weights for {mid}"
+    except Exception as exc:  # network/permission/etc. - non-fatal, GPU path will retry
+        return f"weight prefetch skipped for {mid} ({type(exc).__name__})"
+
+
 def should_preload_transformer_model() -> bool:
     # On ZeroGPU the GPU is attached only inside @spaces.GPU calls, so an import-time
     # preload runs with no GPU: it wastes cold-start time and can cache a CPU-bound

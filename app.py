@@ -23,9 +23,12 @@ except ImportError:  # Local tests should not require the HF Spaces runtime pack
 from study_engine import (
     DEMO_CASES,
     EXAMPLE_INPUT,
+    VISION_MODEL_ID,
+    VOICE_MODEL_ID,
     answer_drills,
     build_rescue_plan,
     coach_state,
+    ensure_weights,
     extract_topics_from_image,
     packet_to_markdown,
     synthesize_speech,
@@ -896,6 +899,8 @@ def generate(
     confidence: int,
     model_choice: str = "openbmb/MiniCPM4.1-8B",
 ):
+    # Download weights on CPU first so a cold model never eats the GPU duration budget.
+    ensure_weights(model_choice)
     try:
         plan = _gpu_build_plan(
             student_name,
@@ -940,6 +945,7 @@ def _gpu_extract_from_photo(image_path):
 def extract_from_photo(image_path):
     if not image_path:
         return gr.update(), "Upload a photo first, or just type your topics."
+    ensure_weights(VISION_MODEL_ID)
     try:
         topics, note = _gpu_extract_from_photo(image_path)
     except Exception:
@@ -965,6 +971,7 @@ def _gpu_read_aloud(text, out_path):
 def read_aloud(final_sheet_html):
     text = re.sub(r"<[^>]+>", " ", final_sheet_html or "")
     out = os.path.join(tempfile.gettempdir(), "exam-panic-rescue-final-sheet.wav")
+    ensure_weights(VOICE_MODEL_ID)
     try:
         path, note = _gpu_read_aloud(text, out)
     except Exception:
@@ -981,6 +988,7 @@ def _gpu_show_answers(drill_markdown, subject, model_choice):
 
 
 def show_answers(drill_markdown, subject, model_choice="openbmb/MiniCPM4.1-8B"):
+    ensure_weights(model_choice)
     try:
         return _gpu_show_answers(drill_markdown, subject, model_choice)
     except Exception:
