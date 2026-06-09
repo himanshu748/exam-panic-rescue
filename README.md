@@ -15,17 +15,23 @@ The first target workflow is a student who has an exam soon, feels stuck, and ca
 
 The app includes four clearly labeled sample scenarios for quick evaluation: biology definitions, physics numericals, history long answers, and math MCQ traps. They are not claimed as real-user data; they are the same public readiness cases used by the local smoke test and published as [data/readiness_cases.jsonl](data/readiness_cases.jsonl). A real student should replace the sample with their actual exam, topics, and time left before generating a packet.
 
-The public UI keeps the student workflow first and puts build-proof/claim status in a small collapsible section so sponsor evidence does not distract from the product.
+The public UI keeps the student workflow first. The build is documented separately in [docs/build-report.md](docs/build-report.md) and the public build-trace dataset, so the product page stays focused on the student rather than on sponsor evidence.
 
 ## Build Status
 
-This is a staging-ready Build Small project in progress. The public Space is live and smoke-tested at https://huggingface.co/spaces/build-small-hackathon/exam-panic-rescue. Final hackathon submission assets still need the demo video, social post, and verified optional runtime claims.
+The public Space is live on Hugging Face ZeroGPU at https://huggingface.co/spaces/build-small-hackathon/exam-panic-rescue and has been verified end-to-end (text, vision, voice, the Nemotron engine, and the answer key all returning real model output).
+
+Submission assets:
+
+- Demo video: recorded (49.6s walkthrough).
+- Social post (X thread, Backyard AI): live at https://x.com/jhahimanshu653/status/2063909355217453142
+- Build report ("what I built and what I learned"): [docs/build-report.md](docs/build-report.md)
 
 Public build notes and demo prep are drafted in [docs/codex-build-trace.md](docs/codex-build-trace.md) and [docs/demo-script.md](docs/demo-script.md).
 
 Public GitHub evidence repo: https://github.com/himanshu748/exam-panic-rescue
 
-Hardware note: the hackathon rule allows models up to `<=32B`, but the live Gradio Space hardware still determines what is practical. The public Space is now running on Hugging Face ZeroGPU with `USE_LOCAL_MODEL=1` and `PRELOAD_TRANSFORMER_MODEL=1`. A live smoke on 2026-06-06 generated with `openbmb/MiniCPM4.1-8B` and returned `Generated with openbmb/MiniCPM4.1-8B on CUDA/ZeroGPU.` CPU fallback remains in the code if hardware is switched back.
+Hardware note: the hackathon rule allows models up to `<=32B`, but the live Gradio Space hardware still determines what is practical. The public Space runs on Hugging Face ZeroGPU with `USE_LOCAL_MODEL=1`. A full live verification on 2026-06-08 returned real model output for every path: `openbmb/MiniCPM4.1-8B` and `nvidia/Nemotron-Mini-4B-Instruct` (both `... on CUDA/ZeroGPU`), `openbmb/MiniCPM-V-4_5` reading a syllabus photo, `openbmb/VoxCPM2` reading the sheet aloud, and a correct worked-answer key. Secondary models now prefetch weights on CPU before the GPU call so a cold first use no longer times out into the fallback. CPU fallback remains in the code if hardware is switched back.
 
 ## How A Student Uses It When Time Is Low
 
@@ -42,12 +48,12 @@ Hardware note: the hackathon rule allows models up to `<=32B`, but the live Grad
 - Model rule: the default model target is `openbmb/MiniCPM4.1-8B`, under the `<=32B` limit.
 - OpenAI Codex track: built with Codex; public GitHub repo is linked from this Space README.
 - OpenBMB angle: the default model path targets `openbmb/MiniCPM4.1-8B`, with a verified ZeroGPU Gradio handler for the live Space path.
-- NVIDIA/Nemotron note: not a submitted claim right now because the live default is OpenBMB MiniCPM. An optional `nvidia/Nemotron-Mini-4B-Instruct` fallback path exists behind `USE_NEMOTRON_FALLBACK=1`, but it should not be claimed until a live smoke proves it.
+- NVIDIA/Nemotron: `nvidia/Nemotron-Mini-4B-Instruct` is a selectable engine in the UI and was verified live on 2026-06-08 (real model-written plan and drills on CUDA/ZeroGPU). OpenBMB MiniCPM remains the default.
 - Cohere note: supporting sponsor only for now; an optional `USE_COHERE_REVIEW=1` hook exists, but the main demo stays local-first and does not claim Cohere usage.
 - JetBrains angle: documented PyCharm/JetBrains run workflow for app, tests, and readiness checks.
 - Off-Brand angle: custom Gradio layout, clearly labeled sample cases, and a printable final-sheet artifact with a first action and a "do not do" guardrail.
 - Best Demo / Community Choice angle: the app now avoids automatic generation, so the live product path is easier to understand in a short video or social post.
-- Not claimed: Modal Awards, NVIDIA Nemotron Quest, Tiny Titan, Well-Tuned, or Best Agent unless matching evidence is added.
+- Targetable with live evidence: NVIDIA Nemotron (selectable engine, verified live), Tiny Titan (≤4B — `openbmb/MiniCPM5-1B` selectable in-UI plus the sub-4B GGUF path). Not claimed: Modal Awards (intentionally excluded), Well-Tuned (no real fine-tune), or Best Agent unless matching evidence is added.
 - Five bonus-quest target: Off-Brand, no-cloud-API design, Field Notes, public build trace, and optional `llama.cpp` evidence. Well-Tuned is intentionally skipped unless real data appears.
 - Public app trace dataset: https://huggingface.co/datasets/build-small-hackathon/exam-panic-rescue-build-trace
 

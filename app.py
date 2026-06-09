@@ -1054,6 +1054,7 @@ FORCE_LIGHT_JS = """
 """
 
 
+# Build Small Hackathon submission Space (resume).
 with gr.Blocks(title="Exam Panic Rescue") as demo:
     gr.HTML(f"<style>{CSS}</style>", container=False)
     with gr.Column(elem_classes=["app-shell"]):
