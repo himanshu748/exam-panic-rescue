@@ -21,11 +21,14 @@ The public UI keeps the student workflow first. The build is documented separate
 
 The public Space is live on Hugging Face ZeroGPU at https://huggingface.co/spaces/build-small-hackathon/exam-panic-rescue and has been verified end-to-end (text, vision, voice, the Nemotron engine, and the answer key all returning real model output).
 
+Real-user validation (Backyard AI): a final-year university Machine Learning student used the live app the day before their exam, and one of the model-written drills closely matched a question that actually appeared on the exam. The anonymized session (with consent) is published in the build-trace dataset under the `real_user` config.
+
 Submission assets:
 
 - Demo video: recorded (49.6s walkthrough).
 - Social post (X thread, Backyard AI): live at https://x.com/jhahimanshu653/status/2063909355217453142
-- Build report ("what I built and what I learned"): [docs/build-report.md](docs/build-report.md)
+- Build report / Field Notes ("what I built and what I learned"): [docs/build-report.md](docs/build-report.md) — also hosted in the org at https://huggingface.co/spaces/build-small-hackathon/exam-panic-rescue-field-notes
+- Open build traces (incl. the real-user session): https://huggingface.co/datasets/build-small-hackathon/exam-panic-rescue-build-trace
 
 Public build notes and demo prep are drafted in [docs/codex-build-trace.md](docs/codex-build-trace.md) and [docs/demo-script.md](docs/demo-script.md).
 

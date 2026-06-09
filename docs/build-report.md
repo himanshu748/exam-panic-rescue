@@ -22,6 +22,27 @@ ranked rescue plan, five practice drills written for their own topics, a triage 
 in real time, and a one-page final sheet to read before they walk in. It can read that sheet
 aloud. That's the whole product. The hard part was resisting everything else.
 
+## What happened when a real student used it
+
+The test that matters for a tool like this isn't a benchmark — it's whether a real person reaches
+for it in their actual worst hour. The day before a university **Machine Learning** exam, a
+final-year student (I'll call them **R.**, shared with their consent and anonymized) opened the
+live Space with eight hours left and this panic dump:
+
+> *"I know the basics of backpropagation but I keep going blank on the mathematical derivations of
+> backprop and CNN convolutional dimensions. I'm afraid I'll freeze when calculating output sizes."*
+
+MiniCPM4.1-8B wrote them a recall-first plan, a triage clock across the eight hours, and five
+drills aimed exactly at the leak — parameter counts, a CNN output-dimension calculation, a
+cross-entropy gradient derivation, and a max-pooling output-size question.
+
+**The next day, one of those model-written drills closely matched a question that actually appeared
+on the exam.** R. said the tool was genuinely useful. That's the whole thesis in one real data
+point: a small model, given a tight job, produced practice that mapped onto a real exam for a real
+student. The full anonymized session is published in the public
+[build-trace dataset](https://huggingface.co/datasets/build-small-hackathon/exam-panic-rescue-build-trace)
+under the `real_user` config.
+
 ## Small models, on purpose
 
 The hackathon rule is a ceiling: nothing over 32B. I treated it as a design value, not a
