@@ -7,3 +7,6 @@ torchvision>=0.17
 Pillow>=10.0
 voxcpm>=0.1
 soundfile>=0.12
+# llama.cpp runtime (Llama Champion) — prebuilt CPU wheels, no compile needed.
+--extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
+llama-cpp-python>=0.3.2

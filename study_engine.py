@@ -21,9 +21,9 @@ USE_LLAMA_CPP = os.getenv("USE_LLAMA_CPP", "0").strip() in {"1", "true", "True"}
 LLAMA_CPP_BACKEND = os.getenv("LLAMA_CPP_BACKEND", "auto").strip().lower()
 LLAMA_CPP_CLI = os.getenv("LLAMA_CPP_CLI", "llama-cli").strip() or "llama-cli"
 LLAMA_CPP_MODEL_PATH = os.getenv("LLAMA_CPP_MODEL_PATH", "").strip()
-LLAMA_CPP_REPO_ID = os.getenv("LLAMA_CPP_REPO_ID", "openbmb/MiniCPM4.1-8B-GGUF")
-LLAMA_CPP_FILENAME = os.getenv("LLAMA_CPP_FILENAME", "MiniCPM4.1-8B-Q4_K_M.gguf")
-LLAMA_CPP_HF_SELECTOR = os.getenv("LLAMA_CPP_HF_SELECTOR", "Q4_K_M").strip() or LLAMA_CPP_FILENAME
+LLAMA_CPP_REPO_ID = os.getenv("LLAMA_CPP_REPO_ID", "openbmb/MiniCPM4-0.5B-QAT-Int4-GGUF")
+LLAMA_CPP_FILENAME = os.getenv("LLAMA_CPP_FILENAME", "MiniCPM4-0.5B-QAT-Int4_gptq_aware_q4_0.gguf")
+LLAMA_CPP_HF_SELECTOR = os.getenv("LLAMA_CPP_HF_SELECTOR", "Q4_0").strip() or LLAMA_CPP_FILENAME
 USE_COHERE_REVIEW = os.getenv("USE_COHERE_REVIEW", "0").strip() in {"1", "true", "True"}
 COHERE_MODEL = os.getenv("COHERE_MODEL", "command-a-plus-05-2026")
 COHERE_API_URL = "https://api.cohere.com/v2/chat"
@@ -34,6 +34,7 @@ COHERE_API_URL = "https://api.cohere.com/v2/chat"
 MODEL_PARAM_BUDGETS = {
     "openbmb/MiniCPM-V-4_5": "8B",
     "nvidia/Nemotron-Mini-4B-Instruct": "4B",
+    "openbmb/MiniCPM4-0.5B-QAT-Int4-GGUF": "0.5B",
 }
 
 
@@ -770,6 +771,46 @@ def transformer_rescue(model_id: str, data: StudyInput, topics: list[str],
     return generated, f"Generated with {label} on {TRANSFORMER_DEVICE_NOTE}."
 
 
+def is_llama_cpp_choice(model_id: str) -> bool:
+    """True for the selectable llama.cpp engine (a GGUF model id), which runs on CPU."""
+    return "gguf" in (model_id or "").lower()
+
+
+def llama_cpp_python_rescue(data: StudyInput, topics: list[str]) -> tuple[str | None, str]:
+    """Run the rescue generation through the llama.cpp runtime (llama-cpp-python, CPU).
+
+    This is the selectable Llama Champion path: a small GGUF model genuinely runs through
+    llama.cpp on the Space. The runtime note names llama-cpp-python so the engine is unambiguous.
+    """
+    try:
+        llama = _llama_cpp_model()
+    except Exception as exc:
+        return None, f"llama.cpp (llama-cpp-python) unavailable: {str(exc)[:160]}"
+    generated = ""
+    try:
+        result = llama.create_chat_completion(
+            messages=chat_messages(data, topics), max_tokens=360, temperature=0.0
+        )
+        generated = generated_text_from_llama_cpp_result(result)
+    except Exception:
+        generated = ""
+    if not generated:
+        try:
+            result = llama(
+                build_prompt(data, topics), max_tokens=360, temperature=0.0,
+                stop=["\n\nStudent:", "\nSubject:"],
+            )
+            generated = generated_text_from_llama_cpp_result(result)
+        except Exception as exc:
+            return None, f"llama.cpp generation failed: {str(exc)[:160]}"
+    if not generated:
+        return None, "llama.cpp returned an empty plan."
+    source = LLAMA_CPP_MODEL_PATH or f"{LLAMA_CPP_REPO_ID}:{LLAMA_CPP_FILENAME}"
+    size = model_size_label(LLAMA_CPP_REPO_ID)
+    label = f"{source} ({size})" if size else source
+    return generated, f"Generated locally with llama-cpp-python (llama.cpp runtime), model {label}."
+
+
 def model_rescue(data: StudyInput, topics: list[str], model_id: str | None = None,
                  image_path: str | None = None) -> tuple[str | None, str]:
     if not USE_LOCAL_MODEL:
@@ -813,6 +854,11 @@ def model_rescue(data: StudyInput, topics: list[str], model_id: str | None = Non
             return generated, f"Generated locally with llama-cpp-python model {source}."
 
     primary = (model_id or "").strip() or DEFAULT_MODEL_ID
+    if is_llama_cpp_choice(primary):
+        generated, note = llama_cpp_python_rescue(data, topics)
+        if generated:
+            return generated, note
+        return None, f"Using fallback study engine because {note}; fallback used."
     generated, note = transformer_rescue(primary, data, topics, image_path=image_path)
     if not generated:
         if nemotron_fallback_enabled() and primary != NEMOTRON_FALLBACK_MODEL_ID:

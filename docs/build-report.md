@@ -55,10 +55,11 @@ you give them a tight job.
 |-------|------|
 | OpenBMB MiniCPM-V-4.5 | Primary engine — writes the rescue plan, drills, and answers, and (being a vision-language model) reads a photo of the syllabus directly in the same call |
 | OpenBMB VoxCPM2 | Reads the final sheet aloud |
-| NVIDIA Nemotron-Mini-4B | Selectable text-only alternate; at 4B it's the Tiny Titan (≤4B) path |
+| NVIDIA Nemotron-Mini-4B | Selectable text-only alternate (4B) |
+| OpenBMB MiniCPM4 0.5B (GGUF) | Selectable engine that runs through the **llama.cpp runtime** on CPU — the Llama Champion path, and a genuinely tiny (0.5B) Tiny Titan |
 
-All three run on Hugging Face ZeroGPU, **one model at a time** so the app always fits in the 24 GB
-budget. Every generation prints a runtime note saying exactly which model ran and on what hardware,
+The transformers models run on Hugging Face ZeroGPU **one at a time** so the app always fits in the 24 GB
+budget; the llama.cpp engine runs on CPU via `llama-cpp-python`. Every generation prints a runtime note saying exactly which model ran and on what hardware,
 so the model behind any output is never ambiguous. (Earlier in the build the text engine was a
 separate MiniCPM4.1-8B; consolidating onto MiniCPM-V-4.5 means a single model now handles both the
 writing and the photo-reading.)

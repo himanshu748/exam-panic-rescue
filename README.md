@@ -22,6 +22,7 @@ models:
   - openbmb/MiniCPM-V-4_5
   - openbmb/VoxCPM2
   - nvidia/Nemotron-Mini-4B-Instruct
+  - openbmb/MiniCPM4-0.5B-QAT-Int4-GGUF
 ---
 
 # Exam Panic Rescue
@@ -56,6 +57,7 @@ Hardware note: the hackathon rule allows models up to `<=32B`. The public Space 
 - **OpenBMB MiniCPM-V-4.5** — the primary engine. It writes the rescue plan and drills, and (being a vision-language model) can read a photo of the student's syllabus directly in the same call.
 - **NVIDIA Nemotron-Mini-4B** — a selectable text-only alternate; at 4B it is the Tiny Titan (`<=4B`) path.
 - **OpenBMB VoxCPM2** — reads the final sheet aloud.
+- **OpenBMB MiniCPM4 0.5B (GGUF)** — an optional engine that runs through the **llama.cpp runtime** (`llama-cpp-python`) on CPU; the Llama Champion + Tiny Titan path. Its runtime note reads `Generated locally with llama-cpp-python (llama.cpp runtime), model openbmb/MiniCPM4-0.5B-QAT-Int4-GGUF ... (0.5B)`.
 
 The on-screen runtime note always reports exactly which model ran and on what hardware. Weights are prefetched on CPU before the GPU call so a cold first use does not time out, and a deterministic CPU fallback keeps the packet complete if a model is unavailable.
 
@@ -80,7 +82,7 @@ The on-screen runtime note always reports exactly which model ran and on what ha
 - Off-Brand angle: custom Gradio layout, clearly labeled sample cases, and a printable final-sheet artifact with a first action and a "do not do" guardrail.
 - Best Demo / Community Choice angle: the app now avoids automatic generation, so the live product path is easier to understand in a short video or social post.
 - Targetable with live evidence: NVIDIA Nemotron (selectable engine), Tiny Titan (≤4B — Nemotron-Mini-4B is the selectable ≤4B engine). Not claimed: Modal Awards (intentionally excluded), Well-Tuned (no real fine-tune), or Best Agent unless matching evidence is added.
-- Bonus quests: Off-Brand (custom UI), Field Notes (public build report), and Sharing is Caring (public build-trace dataset, incl. the anonymized real-user session).
+- Bonus quests: Off-Brand (custom UI), Field Notes (public build report), Sharing is Caring (public build-trace dataset, incl. the anonymized real-user session), **Llama Champion** (the MiniCPM4 0.5B GGUF engine runs live through the llama.cpp runtime), and **Tiny Titan** (that same genuinely-tiny 0.5B model).
 - Public app trace dataset: https://huggingface.co/datasets/build-small-hackathon/exam-panic-rescue-build-trace
 
 See [docs/sponsor-coverage.md](docs/sponsor-coverage.md) for the current sponsor/bonus matrix. Modal is intentionally not part of the product target.
@@ -116,15 +118,21 @@ The generation handler is decorated with `@spaces.GPU(duration=120)`. Hugging Fa
 
 ### Choosing a model
 
-The default engine is `openbmb/MiniCPM-V-4_5` — a vision-language model that writes the rescue plan and drills and can read a photo of the syllabus directly in the same call. The Advanced panel also offers `nvidia/Nemotron-Mini-4B-Instruct`, a text-only engine that, at 4B, is the Tiny Titan (`<=4B`) path. Override the default with `MODEL_ID`:
+The default engine is `openbmb/MiniCPM-V-4_5` — a vision-language model that writes the rescue plan and drills and can read a photo of the syllabus directly in the same call. The Advanced panel offers two more engines:
+
+- `nvidia/Nemotron-Mini-4B-Instruct` — a text-only alternate (4B).
+- `openbmb/MiniCPM4-0.5B-QAT-Int4-GGUF` — runs through the **llama.cpp runtime** (`llama-cpp-python`) on CPU; a genuinely tiny 0.5B model and the **Llama Champion + Tiny Titan** path.
+
+Override the default with `MODEL_ID`:
 
 ```bash
-MODEL_ID=nvidia/Nemotron-Mini-4B-Instruct USE_LOCAL_MODEL=1 python app.py
+MODEL_ID=nvidia/Nemotron-Mini-4B-Instruct USE_LOCAL_MODEL=1 python app.py        # text-only alternate
+MODEL_ID=openbmb/MiniCPM4-0.5B-QAT-Int4-GGUF USE_LOCAL_MODEL=1 python app.py      # llama.cpp on CPU
 ```
 
-Whatever runs, the on-screen runtime note reports the exact model and size (for example, `Generated with openbmb/MiniCPM-V-4_5 (8B) on CUDA/ZeroGPU`), so the model that produced the plan is never ambiguous. When the model writes valid drills they are used directly; otherwise the app falls back to built-in template drills so the packet is always complete.
+Whatever runs, the on-screen runtime note reports the exact model and size (for example, `Generated with openbmb/MiniCPM-V-4_5 (8B) on CUDA/ZeroGPU`, or `Generated locally with llama-cpp-python (llama.cpp runtime), model ... (0.5B)`), so the model that produced the plan is never ambiguous. When the model writes valid drills they are used directly; otherwise the app falls back to built-in template drills so the packet is always complete.
 
-Read-aloud uses `openbmb/VoxCPM2`. Each model is loaded one at a time and freed after use, so the app stays within the 24 GB ZeroGPU budget regardless of which features the student uses.
+Read-aloud uses `openbmb/VoxCPM2`. The transformers models are loaded one at a time and freed after use, and the llama.cpp engine runs on CPU, so the app stays within the 24 GB ZeroGPU budget regardless of which features the student uses.
 
 ## Validation
 

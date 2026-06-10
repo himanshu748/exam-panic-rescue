@@ -323,9 +323,10 @@ class StudyEngineTest(unittest.TestCase):
         self.assertEqual(text, "Cohere quality check: actionable.")
 
     def test_llama_cpp_defaults_target_openbmb_gguf(self):
-        self.assertEqual(LLAMA_CPP_REPO_ID, "openbmb/MiniCPM4.1-8B-GGUF")
-        self.assertEqual(LLAMA_CPP_FILENAME, "MiniCPM4.1-8B-Q4_K_M.gguf")
-        self.assertEqual(LLAMA_CPP_HF_SELECTOR, "Q4_K_M")
+        # The selectable Llama Champion engine uses a small (0.5B) GGUF so CPU inference is fast.
+        self.assertEqual(LLAMA_CPP_REPO_ID, "openbmb/MiniCPM4-0.5B-QAT-Int4-GGUF")
+        self.assertEqual(LLAMA_CPP_FILENAME, "MiniCPM4-0.5B-QAT-Int4_gptq_aware_q4_0.gguf")
+        self.assertEqual(LLAMA_CPP_HF_SELECTOR, "Q4_0")
 
     def test_nemotron_fallback_is_configured_but_default_off(self):
         self.assertEqual(NEMOTRON_FALLBACK_MODEL_ID, "nvidia/Nemotron-Mini-4B-Instruct")
@@ -365,7 +366,7 @@ class StudyEngineTest(unittest.TestCase):
     def test_llama_cli_command_targets_openbmb_hf_selector(self):
         command = llama_cli_command("student panic", max_tokens=32)
 
-        self.assertEqual(command[:3], ["llama-cli", "-hf", "openbmb/MiniCPM4.1-8B-GGUF:Q4_K_M"])
+        self.assertEqual(command[:3], ["llama-cli", "-hf", "openbmb/MiniCPM4-0.5B-QAT-Int4-GGUF:Q4_0"])
         self.assertIn("-p", command)
         self.assertIn("student panic", command)
         self.assertIn("-n", command)

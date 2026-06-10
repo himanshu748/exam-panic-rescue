@@ -905,6 +905,29 @@ def generate(
 ):
     # Download weights on CPU first so a cold model never eats the GPU duration budget.
     ensure_weights(model_choice)
+    if "gguf" in (model_choice or "").lower():
+        # The llama.cpp engine runs on CPU — skip the @spaces.GPU wrapper so it does not hold
+        # (or wait on) the GPU. build_rescue_plan routes the GGUF through llama-cpp-python.
+        plan = build_rescue_plan(
+            student_name,
+            subject,
+            time_left_minutes,
+            exam_format,
+            panic_note,
+            known_material,
+            confidence,
+            model_id=model_choice,
+            image_path=image_path,
+        )
+        return (
+            plan.rescue_plan_markdown,
+            plan.drill_markdown,
+            plan.triage_markdown,
+            plan.final_sheet_html,
+            plan.demo_receipt_markdown,
+            plan.field_note_markdown,
+            plan.model_note,
+        )
     try:
         plan = _gpu_build_plan(
             student_name,
@@ -1142,9 +1165,10 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                         choices=[
                             ("OpenBMB MiniCPM-V-4.5 — default (reads text + your photo)", "openbmb/MiniCPM-V-4_5"),
                             ("NVIDIA Nemotron-Mini-4B (≤4B · Tiny Titan)", "nvidia/Nemotron-Mini-4B-Instruct"),
+                            ("OpenBMB MiniCPM4 0.5B · llama.cpp GGUF (CPU runtime · Tiny Titan)", "openbmb/MiniCPM4-0.5B-QAT-Int4-GGUF"),
                         ],
                         value="openbmb/MiniCPM-V-4_5",
-                        info="MiniCPM-V-4.5 writes your plan and can read your syllabus photo. Nemotron-4B is a text-only alternate. The runtime note shows exactly what ran.",
+                        info="MiniCPM-V-4.5 writes your plan and can read your syllabus photo. Nemotron-4B is a text-only alternate. The 0.5B option runs through the llama.cpp runtime on CPU. The runtime note shows exactly what ran.",
                     )
                 with gr.Row():
                     exam_format = gr.Dropdown(
