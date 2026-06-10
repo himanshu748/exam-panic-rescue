@@ -19,11 +19,9 @@ tags:
   - nemotron
   - zerogpu
 models:
-  - openbmb/MiniCPM4.1-8B
   - openbmb/MiniCPM-V-4_5
   - openbmb/VoxCPM2
   - nvidia/Nemotron-Mini-4B-Instruct
-  - openbmb/MiniCPM5-1B
 ---
 
 # Exam Panic Rescue
@@ -53,7 +51,13 @@ Public build notes and demo prep are drafted in [docs/codex-build-trace.md](docs
 
 Public GitHub evidence repo: https://github.com/himanshu748/exam-panic-rescue
 
-Hardware note: the hackathon rule allows models up to `<=32B`, but the live Gradio Space hardware still determines what is practical. The public Space runs on Hugging Face ZeroGPU with `USE_LOCAL_MODEL=1`. A full live verification on 2026-06-08 returned real model output for every path: `openbmb/MiniCPM4.1-8B` and `nvidia/Nemotron-Mini-4B-Instruct` (both `... on CUDA/ZeroGPU`), `openbmb/MiniCPM-V-4_5` reading a syllabus photo, `openbmb/VoxCPM2` reading the sheet aloud, and a correct worked-answer key. Secondary models now prefetch weights on CPU before the GPU call so a cold first use no longer times out into the fallback. CPU fallback remains in the code if hardware is switched back.
+Hardware note: the hackathon rule allows models up to `<=32B`. The public Space runs on Hugging Face ZeroGPU (24 GB) with `USE_LOCAL_MODEL=1`, loading **one model at a time** so it always fits in memory:
+
+- **OpenBMB MiniCPM-V-4.5** — the primary engine. It writes the rescue plan and drills, and (being a vision-language model) can read a photo of the student's syllabus directly in the same call.
+- **NVIDIA Nemotron-Mini-4B** — a selectable text-only alternate; at 4B it is the Tiny Titan (`<=4B`) path.
+- **OpenBMB VoxCPM2** — reads the final sheet aloud.
+
+The on-screen runtime note always reports exactly which model ran and on what hardware. Weights are prefetched on CPU before the GPU call so a cold first use does not time out, and a deterministic CPU fallback keeps the packet complete if a model is unavailable.
 
 ## How A Student Uses It When Time Is Low
 
@@ -67,16 +71,16 @@ Hardware note: the hackathon rule allows models up to `<=32B`, but the live Grad
 
 - Track: Backyard AI.
 - Build surface: Gradio `Blocks` app hosted as a Hugging Face Space.
-- Model rule: the default model target is `openbmb/MiniCPM4.1-8B`, under the `<=32B` limit.
+- Model rule: the default engine is `openbmb/MiniCPM-V-4_5` (~8B), well under the `<=32B` limit.
 - OpenAI Codex track: built with Codex; public GitHub repo is linked from this Space README.
-- OpenBMB angle: the default model path targets `openbmb/MiniCPM4.1-8B`, with a verified ZeroGPU Gradio handler for the live Space path.
-- NVIDIA/Nemotron: `nvidia/Nemotron-Mini-4B-Instruct` is a selectable engine in the UI and was verified live on 2026-06-08 (real model-written plan and drills on CUDA/ZeroGPU). OpenBMB MiniCPM remains the default.
+- OpenBMB angle: two OpenBMB models cover three capabilities live — `MiniCPM-V-4.5` writes the plan/drills and reads a syllabus photo (text + vision), and `VoxCPM2` reads the final sheet aloud (voice).
+- NVIDIA/Nemotron: `nvidia/Nemotron-Mini-4B-Instruct` is a selectable text engine in the UI; at 4B it doubles as the Tiny Titan (`<=4B`) path. MiniCPM-V-4.5 remains the default.
 - Cohere note: supporting sponsor only for now; an optional `USE_COHERE_REVIEW=1` hook exists, but the main demo stays local-first and does not claim Cohere usage.
 - JetBrains angle: documented PyCharm/JetBrains run workflow for app, tests, and readiness checks.
 - Off-Brand angle: custom Gradio layout, clearly labeled sample cases, and a printable final-sheet artifact with a first action and a "do not do" guardrail.
 - Best Demo / Community Choice angle: the app now avoids automatic generation, so the live product path is easier to understand in a short video or social post.
-- Targetable with live evidence: NVIDIA Nemotron (selectable engine, verified live), Tiny Titan (≤4B — `openbmb/MiniCPM5-1B` selectable in-UI plus the sub-4B GGUF path). Not claimed: Modal Awards (intentionally excluded), Well-Tuned (no real fine-tune), or Best Agent unless matching evidence is added.
-- Five bonus-quest target: Off-Brand, no-cloud-API design, Field Notes, public build trace, and optional `llama.cpp` evidence. Well-Tuned is intentionally skipped unless real data appears.
+- Targetable with live evidence: NVIDIA Nemotron (selectable engine), Tiny Titan (≤4B — Nemotron-Mini-4B is the selectable ≤4B engine). Not claimed: Modal Awards (intentionally excluded), Well-Tuned (no real fine-tune), or Best Agent unless matching evidence is added.
+- Bonus quests: Off-Brand (custom UI), Field Notes (public build report), and Sharing is Caring (public build-trace dataset, incl. the anonymized real-user session).
 - Public app trace dataset: https://huggingface.co/datasets/build-small-hackathon/exam-panic-rescue-build-trace
 
 See [docs/sponsor-coverage.md](docs/sponsor-coverage.md) for the current sponsor/bonus matrix. Modal is intentionally not part of the product target.
@@ -106,62 +110,21 @@ ZeroGPU Space route:
 # Current live Space settings:
 # 1. Hardware: ZeroGPU
 # 2. Variable: USE_LOCAL_MODEL=1
-# 3. Variable: PRELOAD_TRANSFORMER_MODEL=1
 ```
 
 The generation handler is decorated with `@spaces.GPU(duration=120)`. Hugging Face ZeroGPU currently gives PRO and Team users 40 minutes/day of included GPU quota, so final demo prep should use short smoke runs rather than repeated full generations.
 
 ### Choosing a model
 
-`MODEL_ID` selects the small model. The default is `openbmb/MiniCPM4.1-8B` (8B, well under the `<=32B` rule). You can also run a sub-4B model — useful for the Tiny Titan angle:
+The default engine is `openbmb/MiniCPM-V-4_5` — a vision-language model that writes the rescue plan and drills and can read a photo of the syllabus directly in the same call. The Advanced panel also offers `nvidia/Nemotron-Mini-4B-Instruct`, a text-only engine that, at 4B, is the Tiny Titan (`<=4B`) path. Override the default with `MODEL_ID`:
 
 ```bash
-MODEL_ID=openbmb/MiniCPM4-0.5B USE_LOCAL_MODEL=1 python app.py   # 0.5B
-MODEL_ID=openbmb/MiniCPM5-1B   USE_LOCAL_MODEL=1 python app.py   # 1B
+MODEL_ID=nvidia/Nemotron-Mini-4B-Instruct USE_LOCAL_MODEL=1 python app.py
 ```
 
-Whatever runs, the on-screen runtime note reports the exact model and its size (for example, `Generated with openbmb/MiniCPM4-0.5B (0.5B) on CUDA/ZeroGPU`), so the model that produced the plan is never ambiguous. When the model is available it also writes the five practice drills directly; if it is unavailable the app falls back to built-in template drills so the packet is always complete.
+Whatever runs, the on-screen runtime note reports the exact model and size (for example, `Generated with openbmb/MiniCPM-V-4_5 (8B) on CUDA/ZeroGPU`), so the model that produced the plan is never ambiguous. When the model writes valid drills they are used directly; otherwise the app falls back to built-in template drills so the packet is always complete.
 
-Optional local `llama.cpp` mode:
-
-```bash
-USE_LLAMA_CPP=1 python app.py
-```
-
-By default this targets `openbmb/MiniCPM4.1-8B-GGUF` with `MiniCPM4.1-8B-Q4_K_M.gguf` for `llama-cpp-python`, or `openbmb/MiniCPM4.1-8B-GGUF:Q4_K_M` for direct `llama-cli`.
-
-To force the direct CLI path:
-
-```bash
-USE_LLAMA_CPP=1 LLAMA_CPP_BACKEND=cli python app.py
-```
-
-To force a local file, including the verified small OpenBMB MiniCPM4 0.5B GGUF route:
-
-```bash
-USE_LLAMA_CPP=1 \
-LLAMA_CPP_MODEL_PATH=/path/to/MiniCPM4-0.5B-QAT-Int4_gptq_aware_q4_0.gguf \
-python app.py
-```
-
-Optional NVIDIA Nemotron fallback:
-
-```bash
-USE_NEMOTRON_FALLBACK=1 \
-NEMOTRON_FALLBACK_MODEL_ID=nvidia/Nemotron-Mini-4B-Instruct \
-USE_LOCAL_MODEL=1 \
-python app.py
-```
-
-This path is disabled by default. OpenBMB MiniCPM remains the primary submission runtime; Nemotron should only be mentioned as evidence after a matching smoke test passes.
-
-Optional Cohere quality review:
-
-```bash
-USE_COHERE_REVIEW=1 COHERE_API_KEY=... python app.py
-```
-
-This calls Cohere `v2/chat` with `command-a-plus-05-2026` and parses the v2 `message.content[].text` response shape. It stays disabled for the default local-first demo and should not be treated as a submission claim unless official Cohere-specific criteria appear.
+Read-aloud uses `openbmb/VoxCPM2`. Each model is loaded one at a time and freed after use, so the app stays within the 24 GB ZeroGPU budget regardless of which features the student uses.
 
 ## Validation
 
@@ -180,4 +143,3 @@ See [docs/field-notes.md](docs/field-notes.md) for the public build report draft
 See [data/app_traces_public.jsonl](data/app_traces_public.jsonl) for public-safe app traces with inputs, generated outputs, validation flags, and privacy labels.
 The same app trace dataset is mirrored on Hugging Face at https://huggingface.co/datasets/build-small-hackathon/exam-panic-rescue-build-trace.
 See [docs/development-workflow.md](docs/development-workflow.md) for local and JetBrains/PyCharm run workflows.
-See [docs/llama-cpp-runtime.md](docs/llama-cpp-runtime.md) for the optional `llama.cpp` runtime path.

@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 
-DEFAULT_MODEL_ID = os.getenv("MODEL_ID", "openbmb/MiniCPM4.1-8B")
+DEFAULT_MODEL_ID = os.getenv("MODEL_ID", "openbmb/MiniCPM-V-4_5")
 TRANSFORMER_DEVICE_NOTE = "CPU"
 TRANSFORMER_PRELOAD_NOTE = ""
 NEMOTRON_FALLBACK_MODEL_ID = os.getenv("NEMOTRON_FALLBACK_MODEL_ID", "nvidia/Nemotron-Mini-4B-Instruct").strip()
@@ -28,15 +28,11 @@ USE_COHERE_REVIEW = os.getenv("USE_COHERE_REVIEW", "0").strip() in {"1", "true",
 COHERE_MODEL = os.getenv("COHERE_MODEL", "command-a-plus-05-2026")
 COHERE_API_URL = "https://api.cohere.com/v2/chat"
 
-# Known parameter budgets for the small models this app is built to run. All are within
-# the hackathon's <=32B ceiling; the <=4B entries are the Tiny Titan-eligible demo paths
-# selectable via MODEL_ID (e.g. MODEL_ID=openbmb/MiniCPM4-0.5B).
+# Known parameter budgets for the small models this app runs, all within the hackathon's
+# <=32B ceiling. MiniCPM-V-4.5 is the primary engine (text + vision); Nemotron-Mini-4B is the
+# selectable alternate and, at 4B, is the Tiny Titan-eligible (<=4B) path.
 MODEL_PARAM_BUDGETS = {
-    "openbmb/MiniCPM4.1-8B": "8B",
-    "openbmb/MiniCPM4-0.5B": "0.5B",
-    "openbmb/MiniCPM4-0.5B-QAT-Int4-GGUF": "0.5B",
-    "openbmb/MiniCPM5-1B": "1B",
-    "openbmb/MiniCPM-1B-sft-bf16": "1B",
+    "openbmb/MiniCPM-V-4_5": "8B",
     "nvidia/Nemotron-Mini-4B-Instruct": "4B",
 }
 
@@ -505,6 +501,9 @@ def maybe_preload_transformer_model() -> None:
     global TRANSFORMER_PRELOAD_NOTE
     if not USE_LOCAL_MODEL or USE_LLAMA_CPP or not should_preload_transformer_model():
         return
+    if "minicpm-v" in DEFAULT_MODEL_ID.lower():
+        # The default is a vision-language model loaded via .chat(), not the text pipeline.
+        return
 
     try:
         _generator(DEFAULT_MODEL_ID)
@@ -664,7 +663,91 @@ Return one short line that starts with "Cohere quality check:".
     return review or "Cohere quality review returned no text."
 
 
-def transformer_rescue(model_id: str, data: StudyInput, topics: list[str]) -> tuple[str | None, str]:
+def is_minicpm_v(model_id: str) -> bool:
+    """True for MiniCPM-V vision-language models, which generate via .chat() (not a text pipeline)."""
+    return "minicpm-v" in (model_id or "").lower()
+
+
+def minicpm_v_complete(prompt_text: str, model_id: str, image_path: str | None = None,
+                       max_new_tokens: int = 520) -> str:
+    """Generate text with a MiniCPM-V vision-language model via its chat API.
+
+    This lets MiniCPM-V-4.5 be the primary engine: it writes the rescue plan/drills from the text
+    prompt, and - when a syllabus photo is supplied - reads the image directly in the same
+    multimodal call. Loaded fresh and freed each call to stay within the 24 GB ZeroGPU budget.
+    """
+    global TRANSFORMER_DEVICE_NOTE
+    import torch
+    from transformers import AutoModel, AutoTokenizer
+
+    model = None
+    try:
+        content: list = []
+        if image_path:
+            try:
+                from PIL import Image
+                content.append(Image.open(image_path).convert("RGB"))
+            except Exception:
+                pass
+        content.append(prompt_text)
+        model = AutoModel.from_pretrained(
+            model_id, trust_remote_code=True, attn_implementation="sdpa", torch_dtype=torch.bfloat16
+        ).eval()
+        if torch.cuda.is_available():
+            model = model.cuda()
+            TRANSFORMER_DEVICE_NOTE = "CUDA/ZeroGPU"
+        else:
+            TRANSFORMER_DEVICE_NOTE = "CPU"
+        tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+        msgs = [{"role": "user", "content": content}]
+        out = ""
+        for extra in ({"max_new_tokens": max_new_tokens, "sampling": False},
+                      {"max_new_tokens": max_new_tokens},
+                      {}):
+            try:
+                out = model.chat(msgs=msgs, tokenizer=tokenizer, **extra)
+                break
+            except TypeError:
+                continue
+        return strip_hidden_reasoning(out if isinstance(out, str) else str(out))
+    finally:
+        try:
+            import gc
+            if model is not None:
+                del model
+            gc.collect()
+            import torch as _torch
+            if _torch.cuda.is_available():
+                _torch.cuda.empty_cache()
+        except Exception:
+            pass
+
+
+def transformer_rescue(model_id: str, data: StudyInput, topics: list[str],
+                       image_path: str | None = None) -> tuple[str | None, str]:
+    # MiniCPM-V is a vision-language model: generate via its .chat() (text, plus the photo if given).
+    if is_minicpm_v(model_id):
+        try:
+            prompt = SYSTEM_PROMPT + "\n\n" + build_prompt(data, topics)
+            if image_path:
+                prompt = (
+                    "A photo of the student's own syllabus or notes is attached. "
+                    "Read it and use it together with the details below.\n\n" + prompt
+                )
+            generated = minicpm_v_complete(
+                prompt, model_id, image_path=image_path,
+                max_new_tokens=int_env("MODEL_MAX_NEW_TOKENS", 520),
+            )
+        except Exception as exc:
+            return None, f"{model_id} unavailable: {str(exc)[:160]}"
+        generated = strip_hidden_reasoning(generated or "")
+        if not generated:
+            return None, f"{model_id} returned an empty plan."
+        size = model_size_label(model_id)
+        label = f"{model_id} ({size})" if size else model_id
+        source = " (read your photo)" if image_path else ""
+        return generated, f"Generated with {label} on {TRANSFORMER_DEVICE_NOTE}{source}."
+
     try:
         generator = _generator(model_id)
         result = generator(
@@ -687,7 +770,8 @@ def transformer_rescue(model_id: str, data: StudyInput, topics: list[str]) -> tu
     return generated, f"Generated with {label} on {TRANSFORMER_DEVICE_NOTE}."
 
 
-def model_rescue(data: StudyInput, topics: list[str], model_id: str | None = None) -> tuple[str | None, str]:
+def model_rescue(data: StudyInput, topics: list[str], model_id: str | None = None,
+                 image_path: str | None = None) -> tuple[str | None, str]:
     if not USE_LOCAL_MODEL:
         return None, LOCAL_MODEL_DISABLED_NOTE
 
@@ -729,7 +813,7 @@ def model_rescue(data: StudyInput, topics: list[str], model_id: str | None = Non
             return generated, f"Generated locally with llama-cpp-python model {source}."
 
     primary = (model_id or "").strip() or DEFAULT_MODEL_ID
-    generated, note = transformer_rescue(primary, data, topics)
+    generated, note = transformer_rescue(primary, data, topics, image_path=image_path)
     if not generated:
         if nemotron_fallback_enabled() and primary != NEMOTRON_FALLBACK_MODEL_ID:
             fallback_generated, fallback_note = transformer_rescue(NEMOTRON_FALLBACK_MODEL_ID, data, topics)
@@ -741,7 +825,10 @@ def model_rescue(data: StudyInput, topics: list[str], model_id: str | None = Non
 
 
 def _generic_complete(messages: list[dict], model_id: str, max_new_tokens: int = 480) -> str:
-    """Run a one-off chat completion with a cached transformer pipeline (thinking off)."""
+    """Run a one-off chat completion (thinking off). Routes MiniCPM-V via its .chat() API."""
+    if is_minicpm_v(model_id):
+        prompt = "\n\n".join(m.get("content", "") for m in messages if m.get("content"))
+        return minicpm_v_complete(prompt, model_id, image_path=None, max_new_tokens=max_new_tokens)
     generator = _generator(model_id)
     tokenizer = getattr(generator, "tokenizer", None)
     payload = messages
@@ -1112,6 +1199,7 @@ def build_rescue_plan(
     confidence: int,
     force_fallback: bool = False,
     model_id: str | None = None,
+    image_path: str | None = None,
 ) -> StudyPlan:
     data = StudyInput(
         student_name=clip_text(student_name, 120),
@@ -1132,7 +1220,7 @@ def build_rescue_plan(
         generated, note = None, "Deterministic fallback used for reliability (model path skipped)."
     else:
         try:
-            generated, note = model_rescue(data, topics, model_id=model_id)
+            generated, note = model_rescue(data, topics, model_id=model_id, image_path=image_path)
         except Exception as exc:  # a model-path error must never crash the whole packet
             generated, note = None, (
                 f"Using fallback study engine after a model-path error "

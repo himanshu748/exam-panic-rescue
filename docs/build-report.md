@@ -53,14 +53,15 @@ you give them a tight job.
 
 | Model | Role |
 |-------|------|
-| OpenBMB MiniCPM4.1-8B | Writes the rescue plan and the five drills (default engine) |
-| OpenBMB MiniCPM-V-4.5 | Reads a photo of a syllabus/notes and extracts the topics |
+| OpenBMB MiniCPM-V-4.5 | Primary engine — writes the rescue plan, drills, and answers, and (being a vision-language model) reads a photo of the syllabus directly in the same call |
 | OpenBMB VoxCPM2 | Reads the final sheet aloud |
-| NVIDIA Nemotron-Mini-4B | Selectable alternate engine — verified live, real output |
-| OpenBMB MiniCPM5-1B | A sub-4B option for the smallest footprint |
+| NVIDIA Nemotron-Mini-4B | Selectable text-only alternate; at 4B it's the Tiny Titan (≤4B) path |
 
-All five run on Hugging Face ZeroGPU. Every generation prints a runtime note saying exactly which
-model ran and on what hardware, so the model behind any output is never ambiguous.
+All three run on Hugging Face ZeroGPU, **one model at a time** so the app always fits in the 24 GB
+budget. Every generation prints a runtime note saying exactly which model ran and on what hardware,
+so the model behind any output is never ambiguous. (Earlier in the build the text engine was a
+separate MiniCPM4.1-8B; consolidating onto MiniCPM-V-4.5 means a single model now handles both the
+writing and the photo-reading.)
 
 ## The lesson that cost me the most: cold starts on a shared GPU
 
@@ -90,7 +91,7 @@ unavailable, the student still gets a real plan, drills, and triage clock from t
 runtime note that says plainly "fallback used." Nothing errors out in a student's face, and
 nothing pretends a model ran when it didn't.
 
-This turned out to matter for trust: a runtime note that says "Generated with MiniCPM4.1-8B on
+This turned out to matter for trust: a runtime note that says "Generated with MiniCPM-V-4.5 on
 ZeroGPU" or "fallback used" is worth more than a confident black box.
 
 ## Small things that were not small

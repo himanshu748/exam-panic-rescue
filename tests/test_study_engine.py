@@ -190,8 +190,8 @@ class StudyEngineTest(unittest.TestCase):
         self.assertIn("Drill deck", plan.drill_markdown)
 
     def test_model_size_label_marks_tiny_titan_paths(self):
-        self.assertEqual(model_size_label("openbmb/MiniCPM4.1-8B"), "8B")
-        self.assertEqual(model_size_label("openbmb/MiniCPM4-0.5B"), "0.5B")
+        # Lineup is MiniCPM-V-4.5 (primary, text+vision) + Nemotron-Mini-4B (Tiny Titan <=4B).
+        self.assertEqual(model_size_label("openbmb/MiniCPM-V-4_5"), "8B")
         self.assertEqual(model_size_label("nvidia/Nemotron-Mini-4B-Instruct"), "4B")
         self.assertEqual(model_size_label("unknown/model"), "")
 
@@ -344,9 +344,9 @@ class StudyEngineTest(unittest.TestCase):
 
         calls = []
 
-        def fake_transformer_rescue(model_id, *_):
+        def fake_transformer_rescue(model_id, *_, **__):
             calls.append(model_id)
-            if model_id == "openbmb/MiniCPM4.1-8B":
+            if model_id == "openbmb/MiniCPM-V-4_5":
                 return None, "primary failed"
             return "5 practice questions:\n- Explain precision vs recall.", "Generated with nvidia/Nemotron-Mini-4B-Instruct on CUDA/ZeroGPU."
 
@@ -357,7 +357,7 @@ class StudyEngineTest(unittest.TestCase):
 
             generated, note = study_engine.model_rescue(data, ["precision", "recall"])
 
-        self.assertEqual(calls, ["openbmb/MiniCPM4.1-8B", "nvidia/Nemotron-Mini-4B-Instruct"])
+        self.assertEqual(calls, ["openbmb/MiniCPM-V-4_5", "nvidia/Nemotron-Mini-4B-Instruct"])
         self.assertIn("precision vs recall", generated)
         self.assertIn("Nemotron-Mini-4B-Instruct", note)
         self.assertIn("fallback", note)

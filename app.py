@@ -876,7 +876,8 @@ def _gpu_build_plan(
     panic_note: str,
     known_material: str,
     confidence: int,
-    model_choice: str = "openbmb/MiniCPM4.1-8B",
+    model_choice: str = "openbmb/MiniCPM-V-4_5",
+    image_path: str | None = None,
 ):
     return build_rescue_plan(
         student_name,
@@ -887,6 +888,7 @@ def _gpu_build_plan(
         known_material,
         confidence,
         model_id=model_choice,
+        image_path=image_path,
     )
 
 
@@ -898,7 +900,8 @@ def generate(
     panic_note: str,
     known_material: str,
     confidence: int,
-    model_choice: str = "openbmb/MiniCPM4.1-8B",
+    model_choice: str = "openbmb/MiniCPM-V-4_5",
+    image_path: str | None = None,
 ):
     # Download weights on CPU first so a cold model never eats the GPU duration budget.
     ensure_weights(model_choice)
@@ -912,6 +915,7 @@ def generate(
             known_material,
             confidence,
             model_choice,
+            image_path,
         )
     except Exception:
         # A ZeroGPU worker timeout/abort is raised here in the main process and is not
@@ -994,7 +998,7 @@ def _gpu_show_answers(drill_markdown, subject, model_choice):
     return answers
 
 
-def show_answers(drill_markdown, subject, model_choice="openbmb/MiniCPM4.1-8B"):
+def show_answers(drill_markdown, subject, model_choice="openbmb/MiniCPM-V-4_5"):
     ensure_weights(model_choice)
     try:
         return _gpu_show_answers(drill_markdown, subject, model_choice)
@@ -1136,12 +1140,11 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     model_choice = gr.Dropdown(
                         label="Generation model (all ≤32B)",
                         choices=[
-                            ("OpenBMB MiniCPM4.1-8B — default", "openbmb/MiniCPM4.1-8B"),
-                            ("NVIDIA Nemotron-Mini-4B", "nvidia/Nemotron-Mini-4B-Instruct"),
-                            ("OpenBMB MiniCPM5-1B — tiny (≤4B)", "openbmb/MiniCPM5-1B"),
+                            ("OpenBMB MiniCPM-V-4.5 — default (reads text + your photo)", "openbmb/MiniCPM-V-4_5"),
+                            ("NVIDIA Nemotron-Mini-4B (≤4B · Tiny Titan)", "nvidia/Nemotron-Mini-4B-Instruct"),
                         ],
-                        value="openbmb/MiniCPM4.1-8B",
-                        info="Pick which small model writes your plan. The runtime note shows exactly what ran.",
+                        value="openbmb/MiniCPM-V-4_5",
+                        info="MiniCPM-V-4.5 writes your plan and can read your syllabus photo. Nemotron-4B is a text-only alternate. The runtime note shows exactly what ran.",
                     )
                 with gr.Row():
                     exam_format = gr.Dropdown(
@@ -1252,7 +1255,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     )
                     gr.HTML('<div class="runtime-label">Runtime note</div>', container=False)
                     model_note = gr.Markdown(
-                        value="No generation yet. When you build a packet, this Space runs a small model (default OpenBMB MiniCPM4.1-8B, ≤32B) on ZeroGPU, or a deterministic fallback on CPU. This note always reports exactly what ran.",
+                        value="No generation yet. When you build a packet, this Space runs a small model (default OpenBMB MiniCPM-V-4.5, ≤32B) on ZeroGPU, or a deterministic fallback on CPU. This note always reports exactly what ran.",
                         elem_id="model-note",
                     )
 
@@ -1267,7 +1270,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
         ]
         gr.HTML(FOOTER_HTML, container=False)
     demo.load(js=FORCE_LIGHT_JS)
-    run.click(generate, inputs=inputs + [model_choice], outputs=outputs, scroll_to_output=True, api_name="generate")
+    run.click(generate, inputs=inputs + [model_choice, syllabus_image], outputs=outputs, scroll_to_output=True, api_name="generate")
 
     def _start_coach(minutes):
         return time.time(), gr.Timer(active=True)
