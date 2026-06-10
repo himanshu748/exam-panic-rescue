@@ -1,10 +1,29 @@
 ---
 title: Exam Panic Rescue
+emoji: 🆘
+colorFrom: green
+colorTo: yellow
 sdk: gradio
 sdk_version: 6.0.1
 app_file: app.py
 python_version: 3.10.13
 license: mit
+short_description: Last-minute exam rescue on small models (≤32B)
+tags:
+  - backyard-ai
+  - build-small-hackathon
+  - education
+  - study
+  - openbmb
+  - minicpm
+  - nemotron
+  - zerogpu
+models:
+  - openbmb/MiniCPM4.1-8B
+  - openbmb/MiniCPM-V-4_5
+  - openbmb/VoxCPM2
+  - nvidia/Nemotron-Mini-4B-Instruct
+  - openbmb/MiniCPM5-1B
 ---
 
 # Exam Panic Rescue

@@ -331,8 +331,37 @@ def _llama_cpp_model():
     )
 
 
-@lru_cache(maxsize=2)
+_LOADED_TEXT_MODEL_ID = None
+
+
 def _generator(model_id: str = DEFAULT_MODEL_ID):
+    """Return a cached text-generation pipeline, keeping only ONE text model resident.
+
+    ZeroGPU gives us 24 GB. The text models here are up to ~8B (~16 GB in bf16), and the
+    vision/voice models already load-and-free themselves each call, so to guarantee we never
+    exceed 24 GB we keep a single text model at a time: when the requested model changes, free
+    the previous one (clear the cache and empty the CUDA allocator) before building the new one.
+    """
+    global _LOADED_TEXT_MODEL_ID
+    requested = (model_id or "").strip() or DEFAULT_MODEL_ID
+    if _LOADED_TEXT_MODEL_ID is not None and _LOADED_TEXT_MODEL_ID != requested:
+        _build_text_generator.cache_clear()
+        try:
+            import gc
+
+            import torch
+            gc.collect()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        except Exception:
+            pass
+    generator = _build_text_generator(requested)
+    _LOADED_TEXT_MODEL_ID = requested
+    return generator
+
+
+@lru_cache(maxsize=1)
+def _build_text_generator(model_id: str = DEFAULT_MODEL_ID):
     from transformers import AutoTokenizer, pipeline
 
     kwargs = {

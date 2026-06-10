@@ -862,6 +862,7 @@ FOOTER_HTML = """
   <span>Backyard AI track</span>
   <span>OpenBMB MiniCPM · ≤32B</span>
   <span>Runs as a Gradio Space on Hugging Face</span>
+  <a href="https://huggingface.co/spaces/build-small-hackathon/exam-panic-rescue-field-notes" target="_blank" rel="noopener noreferrer" style="text-decoration:none"><span style="background:#005844;color:#fff;border-color:#005844">📓 Read the build report →</span></a>
 </footer>
 """
 
@@ -969,7 +970,13 @@ def _gpu_read_aloud(text, out_path):
 
 
 def read_aloud(final_sheet_html):
-    text = re.sub(r"<[^>]+>", " ", final_sheet_html or "")
+    raw = final_sheet_html or ""
+    # Voice only works once a real packet has been generated. The generated final sheet always
+    # contains this kicker; the idle placeholder does not — so this gates out the placeholder
+    # (no model load, no audio) until the student has actually built a packet.
+    if "Last page before the exam" not in raw:
+        return gr.update(value=None, visible=False), "Build your rescue packet first — then tap Read aloud to hear your final sheet."
+    text = re.sub(r"<[^>]+>", " ", raw)
     out = os.path.join(tempfile.gettempdir(), "exam-panic-rescue-final-sheet.wav")
     ensure_weights(VOICE_MODEL_ID)
     try:
