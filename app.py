@@ -504,6 +504,69 @@ CSS = """
   line-height: 1.5;
 }
 
+.rescue-flow {
+  border: 1px solid rgba(7, 22, 19, 0.30);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top right, rgba(0, 108, 91, 0.10), transparent 50%),
+    #fffdf7;
+  padding: 13px 15px;
+  margin-bottom: 14px;
+}
+
+.rescue-flow b {
+  display: block;
+  color: var(--green-dark);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 9px;
+}
+
+.rescue-flow ol {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: rf;
+  display: grid;
+  gap: 7px;
+}
+
+.rescue-flow li {
+  position: relative;
+  padding-left: 30px;
+  color: var(--ink);
+  font-size: 14.5px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.rescue-flow li:before {
+  counter-increment: rf;
+  content: counter(rf);
+  position: absolute;
+  left: 0;
+  top: -1px;
+  width: 21px;
+  height: 21px;
+  border-radius: 999px;
+  background: var(--green);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+  text-align: center;
+  line-height: 21px;
+}
+
+.coach-hint {
+  margin: 8px 0 2px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
 .runtime-label {
   margin: 4px 0 -4px;
   color: var(--green-dark);
@@ -1155,7 +1218,22 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     """
 <div class="section-title">
   <h2>Build your rescue packet</h2>
-  <p>Paste a real panic dump, actual topics, and time left. If you load a sample, treat it as a template and replace it before studying.</p>
+  <p>Paste your panic dump or upload your syllabus / exam sheet, then generate a rescue plan. If you load a sample, treat it as a template and replace it before studying.</p>
+</div>
+""",
+                    container=False,
+                )
+                gr.HTML(
+                    """
+<div class="rescue-flow" aria-label="Rescue flow">
+  <b>🧭 Rescue flow</b>
+  <ol>
+    <li>Tell us the exam</li>
+    <li>Paste the panic dump, or upload your syllabus / exam sheet</li>
+    <li>Let MiniCPM-V extract the visible topics</li>
+    <li>Generate the rescue plan</li>
+    <li>Start the live coach and follow the plan</li>
+  </ol>
 </div>
 """,
                     container=False,
@@ -1286,6 +1364,10 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                 with gr.Row():
                     coach_start_btn = gr.Button("Start coaching", elem_classes=["primary-action"])
                     coach_reset_btn = gr.Button("Reset", elem_classes=["secondary-action"])
+                gr.HTML(
+                    '<p class="coach-hint">After generating your rescue plan, start the live coach to walk through the time blocks step by step.</p>',
+                    container=False,
+                )
                 coach_timer = gr.Timer(1.0, active=False)
                 rescue_output = gr.Markdown(
                     value="### Ready when you are\n\nPaste the real exam details, then click **Build my rescue packet**. Nothing is generated until you ask for it.",
