@@ -18,6 +18,10 @@ tags:
   - minicpm
   - nemotron
   - zerogpu
+  - privacy-first
+  - local-capable
+  - llama-cpp
+  - tiny-titan
 models:
   - openbmb/MiniCPM-V-4_5
   - openbmb/VoxCPM2
@@ -34,6 +38,16 @@ The first target workflow is a student who has an exam soon, feels stuck, and ca
 The app includes four clearly labeled sample scenarios for quick evaluation: biology definitions, physics numericals, history long answers, and math MCQ traps. They are not claimed as real-user data; they are the same public readiness cases used by the local smoke test and published as [data/readiness_cases.jsonl](data/readiness_cases.jsonl). A real student should replace the sample with their actual exam, topics, and time left before generating a packet.
 
 The public UI keeps the student workflow first. The build is documented separately in [docs/build-report.md](docs/build-report.md) and the public build-trace dataset, so the product page stays focused on the student rather than on sponsor evidence.
+
+## Privacy-first positioning
+
+Exam panic is personal. A student might paste weak topics, last-minute fear, syllabus photos, messy notes, or confidence levels they would not want stored in a public dataset.
+
+The hosted Hugging Face Space is the public demo/evaluation version for the hackathon. It runs on Hugging Face ZeroGPU, so it should not be described as fully on-device. The app itself is designed to avoid intentional app-level persistence: normal user sessions are not written into the public trace dataset, public traces are selected and privacy-labeled, and the one real-user validation trace is anonymized and shared with consent.
+
+For sensitive use, the stronger path is local deployment. The app can be run from this GitHub repo, including a small local model route using `openbmb/MiniCPM4-0.5B-QAT-Int4-GGUF` through the `llama.cpp` runtime on CPU. That makes the long-term product direction clear:
+
+> **Hosted Space = public demo for judging. Local small-model mode = privacy-first direction for sensitive student data.**
 
 ## Build Status
 
@@ -74,6 +88,7 @@ The on-screen runtime note always reports exactly which model ran and on what ha
 - Track: Backyard AI.
 - Build surface: Gradio `Blocks` app hosted as a Hugging Face Space.
 - Model rule: the default engine is `openbmb/MiniCPM-V-4_5` (~8B), well under the `<=32B` limit.
+- Privacy angle: hosted Space for public judging, local-capable small-model path for sensitive student data.
 - OpenAI Codex track: built with Codex; public GitHub repo is linked from this Space README.
 - OpenBMB angle: two OpenBMB models cover three capabilities live — `MiniCPM-V-4.5` writes the plan/drills and reads a syllabus photo (text + vision), and `VoxCPM2` reads the final sheet aloud (voice).
 - NVIDIA/Nemotron: `nvidia/Nemotron-Mini-4B-Instruct` is a selectable text engine in the UI; at 4B it doubles as the Tiny Titan (`<=4B`) path. MiniCPM-V-4.5 remains the default.
@@ -93,7 +108,7 @@ See [docs/sponsor-coverage.md](docs/sponsor-coverage.md) for the current sponsor
 - Space README links to that repo: ready.
 - Hugging Face Space commit history is useful for staging, but the Codex track still needs the separate public GitHub evidence above.
 - Demo video shows one student panic dump becoming a rescue plan, drill deck, triage clock, panic pattern, proof target, final sheet, study receipt, and field-note prompt.
-- Before final submission, the demo/social links should be live.
+- Demo and social links are live and listed above.
 
 ## Local Run
 
