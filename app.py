@@ -469,6 +469,41 @@ CSS = """
   color: #241800;
 }
 
+.privacy-note {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  border: 1px solid rgba(0, 88, 68, 0.30);
+  border-left: 4px solid var(--green);
+  border-radius: 16px;
+  background: rgba(0, 108, 91, 0.07);
+  padding: 12px 14px;
+}
+
+.privacy-note .lock {
+  font-size: 18px;
+  line-height: 1.35;
+}
+
+.privacy-note b {
+  display: block;
+  color: var(--green-dark);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 3px;
+}
+
+.privacy-note span {
+  display: block;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.5;
+}
+
 .runtime-label {
   margin: 4px 0 -4px;
   color: var(--green-dark);
@@ -1125,6 +1160,18 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
 """,
                     container=False,
                 )
+                gr.HTML(
+                    """
+<div class="privacy-note">
+  <div class="lock" aria-hidden="true">🔒</div>
+  <div>
+    <b>Privacy-first note</b>
+    <span>This hosted Space is a public demo. The app does not intentionally store normal user sessions or add them to the public trace dataset. For sensitive use, run the repo locally with the small-model path.</span>
+  </div>
+</div>
+""",
+                    container=False,
+                )
                 student_name = gr.Textbox(
                     label="Student",
                     value=EXAMPLE_INPUT["student_name"],
@@ -1149,15 +1196,15 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     lines=5,
                     info="Paste chapter headings, topics, mistakes, or rough notes.",
                 )
-                with gr.Accordion("📷 Or snap your syllabus / notes", open=False):
+                with gr.Accordion("📷 Upload syllabus / exam sheet / notes photo", open=True):
                     syllabus_image = gr.Image(
-                        label="Photo of a syllabus, timetable, textbook page, or notes",
+                        label="Syllabus, exam sheet, textbook page, or notes",
                         type="filepath",
                         height=180,
                     )
                     extract_btn = gr.Button("Extract topics from photo", elem_classes=["secondary-action"])
                     vision_note = gr.Markdown(
-                        "Upload a photo, then click Extract — OpenBMB MiniCPM-V reads it and fills the topics box above. Always check what it found."
+                        "MiniCPM-V-4.5 reads the image, extracts visible topics, and uses them to build the rescue plan. Always check what it found."
                     )
                 with gr.Accordion("⚙️ Advanced: choose the small model", open=False):
                     model_choice = gr.Dropdown(
