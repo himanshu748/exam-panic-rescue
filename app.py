@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import re
 import tempfile
+import threading
 import time
 
 import gradio as gr
@@ -21,15 +22,18 @@ except ImportError:  # Local tests should not require the HF Spaces runtime pack
     spaces = _SpacesFallback()
 
 from study_engine import (
+    DEFAULT_MODEL_ID,
     DEMO_CASES,
     EXAMPLE_INPUT,
     VISION_MODEL_ID,
     VOICE_MODEL_ID,
     answer_drills,
     build_rescue_plan,
+    classify_gpu_failure,
     coach_state,
     ensure_weights,
     extract_topics_from_image,
+    load_resident_vlm,
     packet_to_markdown,
     synthesize_speech,
     time_blocks,
@@ -565,6 +569,25 @@ CSS = """
   font-size: 14px;
   font-weight: 750;
   line-height: 1.45;
+}
+
+#gen-status .status-busy {
+  border-left: 4px solid var(--gold);
+  border-radius: 12px;
+  background: rgba(189, 143, 34, 0.10);
+  padding: 10px 12px;
+  margin: 8px 0 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .status-busy {
+    animation: epr-pulse 1.6s ease-in-out infinite;
+  }
+
+  @keyframes epr-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+  }
 }
 
 .wiz-progress {
@@ -1152,10 +1175,11 @@ def generate(
             model_choice,
             image_path,
         )
-    except Exception:
+    except Exception as exc:
         # A ZeroGPU worker timeout/abort is raised here in the main process and is not
         # catchable inside the GPU call, so fall back to the deterministic packet rather
-        # than surfacing an error to the student.
+        # than surfacing an error to the student — and say WHY, honestly, so the student
+        # knows what would make the model run (sign in / retry / pick the CPU model).
         plan = build_rescue_plan(
             student_name,
             subject,
@@ -1165,6 +1189,17 @@ def generate(
             known_material,
             confidence,
             force_fallback=True,
+        )
+        reason = classify_gpu_failure(exc)
+        note = f"{plan.model_note} {reason}".strip() if reason else plan.model_note
+        return (
+            plan.rescue_plan_markdown,
+            plan.drill_markdown,
+            plan.triage_markdown,
+            plan.final_sheet_html,
+            plan.demo_receipt_markdown,
+            plan.field_note_markdown,
+            note,
         )
     return (
         plan.rescue_plan_markdown,
@@ -1305,6 +1340,76 @@ def wizard_progress_html(step: int) -> str:
             f'<span class="wiz-lab">{label}</span></li>'
         )
     return '<ol class="wiz-progress" aria-label="Rescue flow progress">' + "".join(dots) + "</ol>"
+
+
+def _boot_warmup() -> None:
+    """Warm the default model before the first student clicks.
+
+    Downloads the MiniCPM-V-4.5 weights and loads them resident (the documented
+    ZeroGPU main-process pattern), then pre-downloads the VoxCPM2 voice weights.
+    Runs in a daemon thread at startup so the UI is never blocked; on CPU-only or
+    local runs every step is a guarded no-op. This removes the silent 60-90 s
+    first-click penalty that previously followed every Space rebuild.
+    """
+    try:
+        ensure_weights(DEFAULT_MODEL_ID)
+        load_resident_vlm(DEFAULT_MODEL_ID)
+        ensure_weights(VOICE_MODEL_ID)
+    except Exception:
+        pass
+
+
+threading.Thread(target=_boot_warmup, name="boot-warmup", daemon=True).start()
+
+
+GEN_BUSY_HTML = (
+    '<p class="coach-hint status-busy">⏳ <b>Working…</b> normally ~10–25 s once warm; the first '
+    'run right after a restart can take longer while the small model wakes up. '
+    'Elapsed: <span id="gen-elapsed">0s</span>. Your packet appears in the results panel.</p>'
+)
+
+
+def _gen_busy():
+    return GEN_BUSY_HTML
+
+
+def _gen_done():
+    return ""
+
+
+def _vision_busy():
+    return "⏳ Reading your photo with MiniCPM-V-4.5 — usually well under a minute when the model is warm."
+
+
+def _read_busy():
+    return "⏳ Synthesizing with OpenBMB VoxCPM2 — the first use downloads the voice model once, then it is quick."
+
+
+def _answers_busy():
+    return "### Worked answers\n\n⏳ Writing worked answers with the selected small model…"
+
+
+# Client-side elapsed ticker for the generation status (Gradio js hooks).
+TICK_JS = """
+() => {
+  try {
+    window.__eprT0 = Date.now();
+    if (window.__eprTick) clearInterval(window.__eprTick);
+    window.__eprTick = setInterval(() => {
+      const el = document.getElementById('gen-elapsed');
+      if (el) el.textContent = Math.round((Date.now() - window.__eprT0) / 1000) + 's';
+    }, 1000);
+  } catch (e) {}
+}
+"""
+
+STOP_TICK_JS = """
+() => {
+  try {
+    if (window.__eprTick) clearInterval(window.__eprTick);
+  } catch (e) {}
+}
+"""
 
 
 # The whole design is built for a light/cream surface, so force light mode even when the
@@ -1490,6 +1595,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                             info="MiniCPM-V-4.5 writes your plan and can read your syllabus photo. Nemotron-4B is a text-only alternate. The 0.5B option runs through the llama.cpp runtime on CPU. The runtime note shows exactly what ran.",
                         )
                     run = gr.Button("Build my rescue packet", variant="primary", elem_classes=["primary-action"])
+                    gen_status = gr.HTML("", elem_id="gen-status", container=False)
 
                 with gr.Column(visible=False, elem_classes=["wiz-step"]) as step5_col:
                     gr.HTML(
@@ -1613,7 +1719,13 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
         ]
         gr.HTML(FOOTER_HTML, container=False)
     demo.load(js=FORCE_LIGHT_JS)
-    run.click(generate, inputs=inputs + [model_choice, syllabus_image], outputs=outputs, scroll_to_output=True, api_name="generate")
+    run.click(_gen_busy, outputs=[gen_status], queue=False, js=TICK_JS).then(
+        generate,
+        inputs=inputs + [model_choice, syllabus_image],
+        outputs=outputs,
+        scroll_to_output=True,
+        api_name="generate",
+    ).then(_gen_done, outputs=[gen_status], queue=False, js=STOP_TICK_JS)
 
     def _start_coach(minutes):
         return time.time(), gr.Timer(active=True)
@@ -1660,14 +1772,29 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
     next_btn.click(_wizard_next, inputs=[wizard_step], outputs=[wizard_step, wiz_progress] + wizard_cols)
     back_btn.click(_wizard_back, inputs=[wizard_step], outputs=[wizard_step, wiz_progress] + wizard_cols)
 
-    extract_btn.click(extract_from_photo, inputs=[syllabus_image], outputs=[known_material, vision_note], api_name="extract_topics")
+    extract_btn.click(_vision_busy, outputs=[vision_note], queue=False).then(
+        extract_from_photo,
+        inputs=[syllabus_image],
+        outputs=[known_material, vision_note],
+        api_name="extract_topics",
+    )
     download_btn.click(
         download_packet,
         inputs=[rescue_output, drill_output, triage_output, final_sheet_output, demo_receipt_output],
         outputs=download_btn,
     )
-    read_btn.click(read_aloud, inputs=[final_sheet_output], outputs=[read_audio, read_note], api_name="read_aloud")
-    answers_btn.click(show_answers, inputs=[drill_output, subject, model_choice], outputs=[answers_output], api_name="show_answers")
+    read_btn.click(_read_busy, outputs=[read_note], queue=False).then(
+        read_aloud,
+        inputs=[final_sheet_output],
+        outputs=[read_audio, read_note],
+        api_name="read_aloud",
+    )
+    answers_btn.click(_answers_busy, outputs=[answers_output], queue=False).then(
+        show_answers,
+        inputs=[drill_output, subject, model_choice],
+        outputs=[answers_output],
+        api_name="show_answers",
+    )
     example.click(load_example, outputs=inputs, queue=False)
     for case_button, case_index in case_buttons:
         case_button.click(CASE_LOADERS[case_index], outputs=inputs, queue=False)

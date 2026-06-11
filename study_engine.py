@@ -5,6 +5,7 @@ import json
 import re
 import shutil
 import subprocess
+import threading
 import urllib.error
 import urllib.request
 from html import escape
@@ -341,6 +342,8 @@ def _generator(model_id: str = DEFAULT_MODEL_ID):
     """
     global _LOADED_TEXT_MODEL_ID
     requested = (model_id or "").strip() or DEFAULT_MODEL_ID
+    # The resident MiniCPM-V must never co-reside with a text pipeline model (~24 GB ceiling).
+    free_resident_vlm()
     if _LOADED_TEXT_MODEL_ID is not None and _LOADED_TEXT_MODEL_ID != requested:
         _build_text_generator.cache_clear()
         try:
@@ -484,6 +487,120 @@ def ensure_weights(model_id: str) -> str:
         return f"prefetched weights for {mid}"
     except Exception as exc:  # network/permission/etc. - non-fatal, GPU path will retry
         return f"weight prefetch skipped for {mid} ({type(exc).__name__})"
+
+
+# ---------------------------------------------------------------------------
+# Resident MiniCPM-V cache.
+#
+# The original design loaded the VLM fresh and freed it on EVERY call, which kept
+# the 24 GB ZeroGPU budget safe but made each warm call pay a ~10-15 s reload. The
+# documented ZeroGPU pattern is the opposite: load once in the main process (with
+# .cuda(); the `spaces` runtime virtualizes it) and reuse it inside @spaces.GPU
+# calls. We do that here for the default MiniCPM-V model only, with one hard rule:
+# the resident model is EVICTED before any other big model (Nemotron pipeline or
+# VoxCPM2 voice) loads, preserving the one-big-model-at-a-time guarantee.
+#
+# Kill-switch: set the Space variable VLM_RESIDENT=0 to restore the old
+# load-fresh-per-call behavior instantly, with no redeploy.
+# ---------------------------------------------------------------------------
+
+_VLM_RESIDENT: dict[str, tuple] = {}
+_VLM_LOCK = threading.Lock()
+
+
+def vlm_resident_enabled() -> bool:
+    """True when the default MiniCPM-V model should stay resident between calls.
+
+    Only on real accelerator environments (ZeroGPU or a GPU Space) with the local
+    model path enabled; local dev and CI never load anything. VLM_RESIDENT=0 turns
+    it off without a code change.
+    """
+    if not bool_env("VLM_RESIDENT", True):
+        return False
+    return USE_LOCAL_MODEL and (is_zero_gpu() or accelerator_available())
+
+
+def load_resident_vlm(model_id: str = DEFAULT_MODEL_ID) -> str:
+    """Load a MiniCPM-V model once and keep it resident. Never raises.
+
+    Safe to call from a startup thread (warms the model before the first student
+    clicks) or lazily from the generation path. Returns a short status string.
+    """
+    mid = (model_id or "").strip() or DEFAULT_MODEL_ID
+    if not vlm_resident_enabled() or not is_minicpm_v(mid):
+        return ""
+    with _VLM_LOCK:
+        if mid in _VLM_RESIDENT:
+            return f"{mid} already resident"
+        try:
+            global TRANSFORMER_DEVICE_NOTE
+            import torch
+            from transformers import AutoModel, AutoTokenizer
+
+            ensure_weights(mid)
+            model = AutoModel.from_pretrained(
+                mid, trust_remote_code=True, attn_implementation="sdpa", torch_dtype=torch.bfloat16
+            ).eval()
+            if torch.cuda.is_available():
+                model = model.cuda()
+                TRANSFORMER_DEVICE_NOTE = "CUDA/ZeroGPU"
+            tokenizer = AutoTokenizer.from_pretrained(mid, trust_remote_code=True)
+            _VLM_RESIDENT[mid] = (model, tokenizer)
+            return f"resident VLM ready: {mid}"
+        except Exception as exc:  # never block the request path on a warmup failure
+            return f"resident VLM load failed for {mid} ({type(exc).__name__}); per-call loading stays in effect"
+
+
+def resident_vlm(model_id: str):
+    """Return the resident (model, tokenizer) pair for model_id, or None."""
+    if not vlm_resident_enabled():
+        return None
+    with _VLM_LOCK:
+        return _VLM_RESIDENT.get((model_id or "").strip())
+
+
+def free_resident_vlm() -> None:
+    """Evict any resident VLM before a different big model loads (VRAM safety)."""
+    with _VLM_LOCK:
+        if not _VLM_RESIDENT:
+            return
+        _VLM_RESIDENT.clear()
+    try:
+        import gc
+
+        import torch
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    except Exception:
+        pass
+
+
+def classify_gpu_failure(exc: Exception | None) -> str:
+    """Map a GPU-path failure to one honest, actionable sentence for the runtime note.
+
+    Used when generation falls back to the deterministic packet, so the student
+    learns WHY the model did not run and what actually fixes it. Returns "" when
+    there is nothing useful to say.
+    """
+    msg = (str(exc) if exc else "").strip()
+    lowered = msg.lower()
+    if not lowered:
+        return ""
+    if "quota" in lowered or "exceeded" in lowered:
+        return (
+            "Why the fallback: free ZeroGPU minutes ran out for this visitor. Sign in to "
+            "Hugging Face for a larger free quota, wait a few minutes, or switch the model "
+            "picker to the 0.5B llama.cpp option (runs on CPU)."
+        )
+    if "abort" in lowered or "timeout" in lowered or "duration" in lowered:
+        return (
+            "Why the fallback: the GPU window timed out — usually a one-time cold model "
+            "download. Try again now; the next run is much faster."
+        )
+    if "gpu" in lowered or "cuda" in lowered or "device" in lowered:
+        return "Why the fallback: no GPU was available just now (ZeroGPU busy). Try again shortly."
+    return f"Why the fallback: {msg[:140]}"
 
 
 def should_preload_transformer_model() -> bool:
@@ -669,28 +786,63 @@ def is_minicpm_v(model_id: str) -> bool:
     return "minicpm-v" in (model_id or "").lower()
 
 
+def _vlm_chat(model, tokenizer, msgs: list[dict], max_new_tokens: int) -> str:
+    """Call a MiniCPM-V .chat() with graceful kwargs fallbacks across model revisions."""
+    out = ""
+    for extra in ({"max_new_tokens": max_new_tokens, "sampling": False},
+                  {"max_new_tokens": max_new_tokens},
+                  {}):
+        try:
+            out = model.chat(msgs=msgs, tokenizer=tokenizer, **extra)
+            break
+        except TypeError:
+            continue
+    return out if isinstance(out, str) else str(out)
+
+
 def minicpm_v_complete(prompt_text: str, model_id: str, image_path: str | None = None,
                        max_new_tokens: int = 520) -> str:
     """Generate text with a MiniCPM-V vision-language model via its chat API.
 
     This lets MiniCPM-V-4.5 be the primary engine: it writes the rescue plan/drills from the text
     prompt, and - when a syllabus photo is supplied - reads the image directly in the same
-    multimodal call. Loaded fresh and freed each call to stay within the 24 GB ZeroGPU budget.
+    multimodal call. Uses the resident model when available (fast path: no reload); otherwise
+    loads fresh and frees afterwards to stay within the 24 GB ZeroGPU budget.
     """
     global TRANSFORMER_DEVICE_NOTE
     import torch
     from transformers import AutoModel, AutoTokenizer
 
+    content: list = []
+    if image_path:
+        try:
+            from PIL import Image
+            content.append(Image.open(image_path).convert("RGB"))
+        except Exception:
+            pass
+    content.append(prompt_text)
+    msgs = [{"role": "user", "content": content}]
+
+    # Fast path: reuse the resident model (loaded at boot or on a previous call).
+    if vlm_resident_enabled():
+        if resident_vlm(model_id) is None:
+            load_resident_vlm(model_id)
+        pair = resident_vlm(model_id)
+        if pair is not None:
+            model, tokenizer = pair
+            if torch.cuda.is_available():
+                try:  # ensure the weights are actually on the GPU inside this window
+                    if next(model.parameters()).device.type != "cuda":
+                        model = model.cuda()
+                except Exception:
+                    pass
+                TRANSFORMER_DEVICE_NOTE = "CUDA/ZeroGPU"
+            else:
+                TRANSFORMER_DEVICE_NOTE = "CPU"
+            return strip_hidden_reasoning(_vlm_chat(model, tokenizer, msgs, max_new_tokens))
+
     model = None
     try:
-        content: list = []
-        if image_path:
-            try:
-                from PIL import Image
-                content.append(Image.open(image_path).convert("RGB"))
-            except Exception:
-                pass
-        content.append(prompt_text)
         model = AutoModel.from_pretrained(
             model_id, trust_remote_code=True, attn_implementation="sdpa", torch_dtype=torch.bfloat16
         ).eval()
@@ -700,17 +852,8 @@ def minicpm_v_complete(prompt_text: str, model_id: str, image_path: str | None =
         else:
             TRANSFORMER_DEVICE_NOTE = "CPU"
         tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
-        msgs = [{"role": "user", "content": content}]
-        out = ""
-        for extra in ({"max_new_tokens": max_new_tokens, "sampling": False},
-                      {"max_new_tokens": max_new_tokens},
-                      {}):
-            try:
-                out = model.chat(msgs=msgs, tokenizer=tokenizer, **extra)
-                break
-            except TypeError:
-                continue
-        return strip_hidden_reasoning(out if isinstance(out, str) else str(out))
+        out = _vlm_chat(model, tokenizer, msgs, max_new_tokens)
+        return strip_hidden_reasoning(out)
     finally:
         try:
             import gc
@@ -943,6 +1086,29 @@ def extract_topics_from_image(image_path: str) -> tuple[str, str]:
     except Exception as exc:  # pragma: no cover - depends on runtime deps
         return "", f"Vision support is unavailable here ({exc}). Type your topics instead."
 
+    # Fast path: the resident model reads the photo with no reload.
+    pair = resident_vlm(VISION_MODEL_ID)
+    if pair is not None:
+        try:
+            image = Image.open(image_path).convert("RGB")
+            model, tokenizer = pair
+            if torch.cuda.is_available():
+                try:
+                    if next(model.parameters()).device.type != "cuda":
+                        model = model.cuda()
+                except Exception:
+                    pass
+            answer = _vlm_chat(
+                model, tokenizer,
+                [{"role": "user", "content": [image, VISION_QUESTION]}], 320,
+            )
+            topics = clip_text(compact(answer), 600)
+            if not topics:
+                return "", "Could not find topics in that photo. Try a clearer image or type them."
+            return topics, f"Topics read from your photo with {VISION_MODEL_ID}. Check them before you rely on them."
+        except Exception as exc:
+            return "", f"Could not read the photo ({type(exc).__name__}). Type your topics instead."
+
     model = None
     try:
         image = Image.open(image_path).convert("RGB")
@@ -995,6 +1161,8 @@ def synthesize_speech(text: str, out_path: str) -> tuple[str | None, str]:
     except Exception as exc:  # pragma: no cover - depends on runtime deps
         return None, f"Read-aloud is unavailable here ({exc})."
 
+    # The voice model must not co-reside with the resident 8B VLM (VRAM safety).
+    free_resident_vlm()
     model = None
     try:
         model = VoxCPM.from_pretrained(VOICE_MODEL_ID, load_denoiser=False)

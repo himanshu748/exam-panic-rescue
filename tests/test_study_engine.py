@@ -423,5 +423,49 @@ class StudyEngineTest(unittest.TestCase):
         self.assertEqual(text, "1. Reset.\n2. Drill.")
 
 
+from study_engine import (  # new helpers: resident VLM gating + honest GPU-failure notes
+    classify_gpu_failure,
+    free_resident_vlm,
+    load_resident_vlm,
+    resident_vlm,
+    vlm_resident_enabled,
+)
+
+
+class ClassifyGpuFailureTests(unittest.TestCase):
+    def test_quota_failure_mentions_sign_in(self):
+        note = classify_gpu_failure(RuntimeError("You have exceeded your GPU quota (60s requested vs. 0s left)"))
+
+        self.assertIn("ZeroGPU minutes", note)
+        self.assertIn("Sign in to Hugging Face", note)
+
+    def test_timeout_failure_suggests_retry(self):
+        note = classify_gpu_failure(RuntimeError("GPU task aborted"))
+
+        self.assertIn("timed out", note)
+        self.assertIn("Try again", note)
+
+    def test_no_exception_is_silent(self):
+        self.assertEqual(classify_gpu_failure(None), "")
+
+    def test_unknown_failure_is_quoted_honestly(self):
+        note = classify_gpu_failure(RuntimeError("strange thing happened"))
+
+        self.assertIn("strange thing happened", note)
+
+
+class ResidentVlmGatingTests(unittest.TestCase):
+    def test_disabled_in_local_test_env(self):
+        # USE_LOCAL_MODEL=0 in this test process, so residency must be off.
+        self.assertFalse(vlm_resident_enabled())
+
+    def test_load_is_a_noop_when_disabled(self):
+        self.assertEqual(load_resident_vlm("openbmb/MiniCPM-V-4_5"), "")
+        self.assertIsNone(resident_vlm("openbmb/MiniCPM-V-4_5"))
+
+    def test_free_is_safe_when_empty(self):
+        free_resident_vlm()  # must never raise
+
+
 if __name__ == "__main__":
     unittest.main()
