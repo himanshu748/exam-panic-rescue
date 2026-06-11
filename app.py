@@ -567,6 +567,120 @@ CSS = """
   line-height: 1.45;
 }
 
+.wiz-progress {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+}
+
+.wiz-dot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+}
+
+.wiz-bub {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 900;
+  border: 1px solid rgba(7, 22, 19, 0.30);
+  background: #fffdf7;
+  color: var(--muted);
+}
+
+.wiz-lab {
+  font-size: 10.5px;
+  font-weight: 850;
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+}
+
+.wiz-active .wiz-bub {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(0, 108, 91, 0.28);
+}
+
+.wiz-active .wiz-lab {
+  color: var(--green-dark);
+}
+
+.wiz-done .wiz-bub {
+  background: rgba(0, 108, 91, 0.16);
+  border-color: rgba(0, 88, 68, 0.40);
+  color: var(--green-dark);
+}
+
+.wiz-step {
+  border: 1px solid rgba(7, 22, 19, 0.30);
+  border-radius: 18px;
+  background:
+    radial-gradient(circle at top right, rgba(0, 108, 91, 0.08), transparent 50%),
+    #fffdf7;
+  padding: 14px 15px;
+  margin-bottom: 8px;
+}
+
+.wiz-head {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.wiz-head .wiz-num {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--green);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 900;
+  text-align: center;
+  line-height: 24px;
+}
+
+.wiz-head b {
+  display: block;
+  font-family: Georgia, "Times New Roman", ui-serif, serif;
+  color: var(--ink);
+  font-size: 19px;
+  letter-spacing: -0.01em;
+}
+
+.wiz-head span {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.4;
+}
+
+.wiz-nav {
+  gap: 10px;
+  margin: 6px 0 2px;
+}
+
+@media (max-width: 640px) {
+  .wiz-lab {
+    display: none;
+  }
+}
+
 .runtime-label {
   margin: 4px 0 -4px;
   color: var(--green-dark);
@@ -1171,6 +1285,28 @@ def load_math_case():
 CASE_LOADERS = [load_biology_case, load_physics_case, load_history_case, load_math_case]
 
 
+WIZARD_LABELS = [
+    "Tell us the exam",
+    "Share what you have",
+    "Scan your image",
+    "Generate plan",
+    "Live coach",
+]
+
+
+def wizard_progress_html(step: int) -> str:
+    """Render the five-step rescue-flow progress bar with the current step highlighted."""
+    current = max(1, min(len(WIZARD_LABELS), int(step or 1)))
+    dots = []
+    for index, label in enumerate(WIZARD_LABELS, start=1):
+        state = "wiz-done" if index < current else ("wiz-active" if index == current else "wiz-todo")
+        dots.append(
+            f'<li class="wiz-dot {state}"><span class="wiz-bub">{index}</span>'
+            f'<span class="wiz-lab">{label}</span></li>'
+        )
+    return '<ol class="wiz-progress" aria-label="Rescue flow progress">' + "".join(dots) + "</ol>"
+
+
 # The whole design is built for a light/cream surface, so force light mode even when the
 # visitor's device is in dark mode (otherwise dark Gradio surfaces hide the dark label text).
 FORCE_LIGHT_JS = """
@@ -1218,28 +1354,73 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     """
 <div class="section-title">
   <h2>Build your rescue packet</h2>
-  <p>Paste your panic dump or upload your syllabus / exam sheet, then generate a rescue plan. If you load a sample, treat it as a template and replace it before studying.</p>
+  <p>A guided rescue in five quick steps — use <b>Next</b> and <b>Back</b> to move through. Paste your panic dump or upload your syllabus / exam sheet, then generate a rescue plan.</p>
 </div>
 """,
                     container=False,
                 )
-                gr.HTML(
-                    """
-<div class="rescue-flow" aria-label="Rescue flow">
-  <b>🧭 Rescue flow</b>
-  <ol>
-    <li>Tell us the exam</li>
-    <li>Paste the panic dump, or upload your syllabus / exam sheet</li>
-    <li>Let MiniCPM-V extract the visible topics</li>
-    <li>Generate the rescue plan</li>
-    <li>Start the live coach and follow the plan</li>
-  </ol>
+                wizard_step = gr.State(1)
+                wiz_progress = gr.HTML(wizard_progress_html(1), container=False)
+
+                with gr.Column(visible=True, elem_classes=["wiz-step"]) as step1_col:
+                    gr.HTML(
+                        """
+<div class="wiz-head">
+  <span class="wiz-num">1</span>
+  <div><b>Tell us the exam</b><span>Who is studying, which exam, and how long is left.</span></div>
 </div>
 """,
-                    container=False,
-                )
-                gr.HTML(
-                    """
+                        container=False,
+                    )
+                    student_name = gr.Textbox(
+                        label="Student",
+                        value=EXAMPLE_INPUT["student_name"],
+                        lines=1,
+                        info="First name is enough.",
+                    )
+                    subject = gr.Textbox(
+                        label="Exam subject",
+                        value=EXAMPLE_INPUT["subject"],
+                        lines=2,
+                        info="Include class/chapter if useful.",
+                    )
+                    with gr.Row():
+                        exam_format = gr.Dropdown(
+                            label="Exam format",
+                            choices=["Mixed", "Multiple choice", "Short answer", "Long answer"],
+                            value=EXAMPLE_INPUT["exam_format"],
+                            info="This changes the drill style.",
+                        )
+                        confidence = gr.Slider(
+                            label="Confidence",
+                            minimum=1,
+                            maximum=5,
+                            value=EXAMPLE_INPUT["confidence"],
+                            step=1,
+                            info="1 = frozen, 5 = steady.",
+                        )
+                    time_left_minutes = gr.Slider(
+                        label="Minutes left",
+                        minimum=15,
+                        maximum=1440,
+                        value=EXAMPLE_INPUT["time_left_minutes"],
+                        step=15,
+                        info="From 15 minutes up to a full day (1440 min). The plan changes with the time you have.",
+                    )
+                    example = gr.Button("Load example", elem_classes=["secondary-action"])
+
+                with gr.Column(visible=False, elem_classes=["wiz-step"]) as step2_col:
+                    gr.HTML(
+                        """
+<div class="wiz-head">
+  <span class="wiz-num">2</span>
+  <div><b>Share what you have</b><span>Paste your panic dump and topics — or upload a photo to scan in the next step.</span></div>
+</div>
+""",
+                        container=False,
+                    )
+                    gr.HTML(
+                        """
 <div class="privacy-note">
   <div class="lock" aria-hidden="true">🔒</div>
   <div>
@@ -1248,85 +1429,94 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
   </div>
 </div>
 """,
-                    container=False,
-                )
-                student_name = gr.Textbox(
-                    label="Student",
-                    value=EXAMPLE_INPUT["student_name"],
-                    lines=1,
-                    info="First name is enough.",
-                )
-                subject = gr.Textbox(
-                    label="Exam subject",
-                    value=EXAMPLE_INPUT["subject"],
-                    lines=2,
-                    info="Include class/chapter if useful.",
-                )
-                panic_note = gr.Textbox(
-                    label="Panic dump",
-                    value=EXAMPLE_INPUT["panic_note"],
-                    lines=5,
-                    info="What feels scary, blank, messy, or urgent?",
-                )
-                known_material = gr.Textbox(
-                    label="Syllabus, notes, or weak topics",
-                    value=EXAMPLE_INPUT["known_material"],
-                    lines=5,
-                    info="Paste chapter headings, topics, mistakes, or rough notes.",
-                )
-                with gr.Accordion("📷 Upload syllabus / exam sheet / notes photo", open=True):
-                    syllabus_image = gr.Image(
-                        label="Syllabus, exam sheet, textbook page, or notes",
-                        type="filepath",
-                        height=180,
+                        container=False,
+                    )
+                    panic_note = gr.Textbox(
+                        label="Panic dump",
+                        value=EXAMPLE_INPUT["panic_note"],
+                        lines=5,
+                        info="What feels scary, blank, messy, or urgent?",
+                    )
+                    known_material = gr.Textbox(
+                        label="Syllabus, notes, or weak topics",
+                        value=EXAMPLE_INPUT["known_material"],
+                        lines=5,
+                        info="Paste chapter headings, topics, mistakes, or rough notes.",
+                    )
+                    with gr.Accordion("📷 Upload syllabus / exam sheet / notes photo", open=True):
+                        syllabus_image = gr.Image(
+                            label="Syllabus, exam sheet, textbook page, or notes",
+                            type="filepath",
+                            height=180,
+                        )
+                        gr.Markdown(
+                            "MiniCPM-V-4.5 reads the image, extracts visible topics, and uses them to build the rescue plan."
+                        )
+
+                with gr.Column(visible=False, elem_classes=["wiz-step"]) as step3_col:
+                    gr.HTML(
+                        """
+<div class="wiz-head">
+  <span class="wiz-num">3</span>
+  <div><b>Scan your image</b><span>Optional — if you uploaded a photo, pull its visible topics into your topics box.</span></div>
+</div>
+""",
+                        container=False,
                     )
                     extract_btn = gr.Button("Extract topics from photo", elem_classes=["secondary-action"])
                     vision_note = gr.Markdown(
-                        "MiniCPM-V-4.5 reads the image, extracts visible topics, and uses them to build the rescue plan. Always check what it found."
+                        "Upload a photo in Step 2, then tap Extract — MiniCPM-V-4.5 reads it and fills your topics box. Always check what it found."
                     )
-                with gr.Accordion("⚙️ Advanced: choose the small model", open=False):
-                    model_choice = gr.Dropdown(
-                        label="Generation model (all ≤32B)",
-                        choices=[
-                            ("OpenBMB MiniCPM-V-4.5 — default (reads text + your photo)", "openbmb/MiniCPM-V-4_5"),
-                            ("NVIDIA Nemotron-Mini-4B (≤4B · Tiny Titan)", "nvidia/Nemotron-Mini-4B-Instruct"),
-                            ("OpenBMB MiniCPM4 0.5B · llama.cpp GGUF (CPU runtime · Tiny Titan)", "openbmb/MiniCPM4-0.5B-QAT-Int4-GGUF"),
-                        ],
-                        value="openbmb/MiniCPM-V-4_5",
-                        info="MiniCPM-V-4.5 writes your plan and can read your syllabus photo. Nemotron-4B is a text-only alternate. The 0.5B option runs through the llama.cpp runtime on CPU. The runtime note shows exactly what ran.",
+
+                with gr.Column(visible=False, elem_classes=["wiz-step"]) as step4_col:
+                    gr.HTML(
+                        """
+<div class="wiz-head">
+  <span class="wiz-num">4</span>
+  <div><b>Generate your rescue plan</b><span>Pick the model if you like, then build the packet. It appears in the results panel.</span></div>
+</div>
+""",
+                        container=False,
                     )
-                with gr.Row():
-                    exam_format = gr.Dropdown(
-                        label="Exam format",
-                        choices=["Mixed", "Multiple choice", "Short answer", "Long answer"],
-                        value=EXAMPLE_INPUT["exam_format"],
-                        info="This changes the drill style.",
-                    )
-                    confidence = gr.Slider(
-                        label="Confidence",
-                        minimum=1,
-                        maximum=5,
-                        value=EXAMPLE_INPUT["confidence"],
-                        step=1,
-                        info="1 = frozen, 5 = steady.",
-                    )
-                time_left_minutes = gr.Slider(
-                    label="Minutes left",
-                    minimum=15,
-                    maximum=1440,
-                    value=EXAMPLE_INPUT["time_left_minutes"],
-                    step=15,
-                    info="From 15 minutes up to a full day (1440 min). The plan changes with the time you have.",
-                )
-                with gr.Row():
+                    with gr.Accordion("⚙️ Advanced: choose the small model", open=False):
+                        model_choice = gr.Dropdown(
+                            label="Generation model (all ≤32B)",
+                            choices=[
+                                ("OpenBMB MiniCPM-V-4.5 — default (reads text + your photo)", "openbmb/MiniCPM-V-4_5"),
+                                ("NVIDIA Nemotron-Mini-4B (≤4B · Tiny Titan)", "nvidia/Nemotron-Mini-4B-Instruct"),
+                                ("OpenBMB MiniCPM4 0.5B · llama.cpp GGUF (CPU runtime · Tiny Titan)", "openbmb/MiniCPM4-0.5B-QAT-Int4-GGUF"),
+                            ],
+                            value="openbmb/MiniCPM-V-4_5",
+                            info="MiniCPM-V-4.5 writes your plan and can read your syllabus photo. Nemotron-4B is a text-only alternate. The 0.5B option runs through the llama.cpp runtime on CPU. The runtime note shows exactly what ran.",
+                        )
                     run = gr.Button("Build my rescue packet", variant="primary", elem_classes=["primary-action"])
-                    example = gr.Button("Load example", elem_classes=["secondary-action"])
+
+                with gr.Column(visible=False, elem_classes=["wiz-step"]) as step5_col:
+                    gr.HTML(
+                        """
+<div class="wiz-head">
+  <span class="wiz-num">5</span>
+  <div><b>Follow with the live coach</b><span>Your rescue plan and the live coach are in the results panel.</span></div>
+</div>
+""",
+                        container=False,
+                    )
+                    gr.HTML(
+                        '<p class="coach-hint">After generating your rescue plan, start the live coach to walk through the time blocks step by step. The coach controls are at the top of the results panel →</p>',
+                        container=False,
+                    )
+
+                with gr.Row(elem_classes=["wiz-nav"]):
+                    back_btn = gr.Button("← Back", elem_classes=["secondary-action"])
+                    next_btn = gr.Button("Next →", elem_classes=["primary-action"])
+
                 inputs = [student_name, subject, time_left_minutes, exam_format, panic_note, known_material, confidence]
+
                 with gr.Column(elem_classes=["demo-cases"]):
                     gr.HTML(
                         """
 <h2>Try a sample scenario</h2>
-<p>Samples do not claim real-user data. They only show how the rescue changes for short answers, numericals, long answers, and MCQ traps.</p>
+<p>Samples do not claim real-user data. They only show how the rescue changes for short answers, numericals, long answers, and MCQ traps. Loading one fills every step.</p>
 """,
                         container=False,
                     )
@@ -1454,6 +1644,22 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
     coach_start_btn.click(_start_coach, inputs=[time_left_minutes], outputs=[coach_start, coach_timer])
     coach_reset_btn.click(_reset_coach, outputs=[coach_start, coach_timer, coach_display])
     coach_timer.tick(_tick_coach, inputs=[coach_start, time_left_minutes], outputs=[coach_display])
+
+    def _wizard_go(step):
+        step = max(1, min(len(WIZARD_LABELS), int(step or 1)))
+        col_updates = [gr.update(visible=(i + 1 == step)) for i in range(len(WIZARD_LABELS))]
+        return [step, wizard_progress_html(step)] + col_updates
+
+    def _wizard_next(step):
+        return _wizard_go(int(step or 1) + 1)
+
+    def _wizard_back(step):
+        return _wizard_go(int(step or 1) - 1)
+
+    wizard_cols = [step1_col, step2_col, step3_col, step4_col, step5_col]
+    next_btn.click(_wizard_next, inputs=[wizard_step], outputs=[wizard_step, wiz_progress] + wizard_cols)
+    back_btn.click(_wizard_back, inputs=[wizard_step], outputs=[wizard_step, wiz_progress] + wizard_cols)
+
     extract_btn.click(extract_from_photo, inputs=[syllabus_image], outputs=[known_material, vision_note], api_name="extract_topics")
     download_btn.click(
         download_packet,
