@@ -1,10 +1,13 @@
 gradio==6.0.1
 spaces>=0.50,<1
-transformers>=4.56,<5
-torch>=2.2,<3
+transformers>=5.7,<6
+torch>=2.4,<3
 accelerate>=0.33,<2
-torchvision>=0.17
+torchvision>=0.19
 Pillow>=10.0
+# PyAV: media backend MiniCPM-V 4.6's processor uses (image + video). Prebuilt wheels,
+# CUDA-safe — avoids the torchcodec/CUDA-version mismatch noted on the model card.
+av>=12.0
 # llama.cpp runtime (Llama Champion) — prebuilt CPU wheels, no compile needed.
 --extra-index-url https://abetlen.github.io/llama-cpp-python/whl/cpu
 llama-cpp-python>=0.3.2

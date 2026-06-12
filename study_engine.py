@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 
 
-DEFAULT_MODEL_ID = os.getenv("MODEL_ID", "openbmb/MiniCPM-V-4_5")
+DEFAULT_MODEL_ID = os.getenv("MODEL_ID", "openbmb/MiniCPM-V-4.6")
 TRANSFORMER_DEVICE_NOTE = "CPU"
 TRANSFORMER_PRELOAD_NOTE = ""
 NEMOTRON_FALLBACK_MODEL_ID = os.getenv("NEMOTRON_FALLBACK_MODEL_ID", "nvidia/Nemotron-Mini-4B-Instruct").strip()
@@ -30,9 +30,11 @@ COHERE_MODEL = os.getenv("COHERE_MODEL", "command-a-plus-05-2026")
 COHERE_API_URL = "https://api.cohere.com/v2/chat"
 
 # Known parameter budgets for the small models this app runs, all within the hackathon's
-# <=32B ceiling. MiniCPM-V-4.5 is the primary engine (text + vision); Nemotron-Mini-4B is the
-# selectable alternate and, at 4B, is the Tiny Titan-eligible (<=4B) path.
+# <=32B ceiling. MiniCPM-V 4.6 is the primary engine (text + vision); Nemotron-Mini-4B is the
+# selectable alternate and, at 4B, is the Tiny Titan-eligible (<=4B) path. MiniCPM-V-4_5 stays
+# listed so an explicit MODEL_ID=openbmb/MiniCPM-V-4_5 override still reports its true size.
 MODEL_PARAM_BUDGETS = {
+    "openbmb/MiniCPM-V-4.6": "1.3B",
     "openbmb/MiniCPM-V-4_5": "8B",
     "nvidia/Nemotron-Mini-4B-Instruct": "4B",
     "openbmb/MiniCPM4-0.5B-QAT-Int4-GGUF": "0.5B",
@@ -534,17 +536,14 @@ def load_resident_vlm(model_id: str = DEFAULT_MODEL_ID) -> str:
         try:
             global TRANSFORMER_DEVICE_NOTE
             import torch
-            from transformers import AutoModel, AutoTokenizer
 
             ensure_weights(mid)
-            model = AutoModel.from_pretrained(
-                mid, trust_remote_code=True, attn_implementation="sdpa", torch_dtype=torch.bfloat16
-            ).eval()
+            # helper is a processor (MiniCPM-V 4.6) or a tokenizer (4.5); _run_vlm dispatches.
+            model, helper = _load_vlm_fresh(mid)
             if torch.cuda.is_available():
                 model = model.cuda()
                 TRANSFORMER_DEVICE_NOTE = "CUDA/ZeroGPU"
-            tokenizer = AutoTokenizer.from_pretrained(mid, trust_remote_code=True)
-            _VLM_RESIDENT[mid] = (model, tokenizer)
+            _VLM_RESIDENT[mid] = (model, helper)
             return f"resident VLM ready: {mid}"
         except Exception as exc:  # never block the request path on a warmup failure
             return f"resident VLM load failed for {mid} ({type(exc).__name__}); per-call loading stays in effect"
@@ -619,7 +618,7 @@ def maybe_preload_transformer_model() -> None:
     if not USE_LOCAL_MODEL or USE_LLAMA_CPP or not should_preload_transformer_model():
         return
     if "minicpm-v" in DEFAULT_MODEL_ID.lower():
-        # The default is a vision-language model loaded via .chat(), not the text pipeline.
+        # The default is a vision-language model with its own multimodal path, not the text pipeline.
         return
 
     try:
@@ -781,12 +780,60 @@ Return one short line that starts with "Cohere quality check:".
 
 
 def is_minicpm_v(model_id: str) -> bool:
-    """True for MiniCPM-V vision-language models, which generate via .chat() (not a text pipeline)."""
+    """True for any MiniCPM-V vision-language model (generates via a multimodal call, not a text pipeline)."""
     return "minicpm-v" in (model_id or "").lower()
 
 
+def is_minicpm_v_native(model_id: str) -> bool:
+    """True for MiniCPM-V models that use the native transformers API instead of .chat().
+
+    MiniCPM-V 4.6 (and newer) is integrated into transformers (>=5.7) as an
+    ``AutoModelForImageTextToText`` + ``AutoProcessor`` model: generation goes through
+    ``processor.apply_chat_template(...)`` + ``model.generate(...)``, not the legacy
+    ``trust_remote_code`` ``model.chat(msgs=, tokenizer=)`` API that MiniCPM-V-4.5 used.
+    We keep BOTH paths so an explicit ``MODEL_ID=openbmb/MiniCPM-V-4_5`` still works.
+    """
+    lowered = (model_id or "").lower()
+    if "minicpm-v" not in lowered:
+        return False
+    return any(tag in lowered for tag in ("4.6", "4_6", "4-6"))
+
+
+def _load_pil(image_path: str | None):
+    """Best-effort load an RGB PIL image; returns None on any failure (image just omitted)."""
+    if not image_path:
+        return None
+    try:
+        from PIL import Image
+
+        return Image.open(image_path).convert("RGB")
+    except Exception:
+        return None
+
+
+def _build_vlm_messages(prompt_text: str, image_path: str | None, native: bool) -> list[dict]:
+    """Build a one-user-turn message list in the right shape for the chosen MiniCPM-V API.
+
+    Native 4.6 wants typed content parts ({"type": "image"/"text", ...}); the legacy 4.5
+    .chat() wants a flat [PIL_image, prompt_text] content list. Either way the image is
+    optional, so a text-only rescue plan and a photo-grounded one share one builder.
+    """
+    image = _load_pil(image_path)
+    if native:
+        content: list = []
+        if image is not None:
+            content.append({"type": "image", "image": image})
+        content.append({"type": "text", "text": prompt_text})
+        return [{"role": "user", "content": content}]
+    content = []
+    if image is not None:
+        content.append(image)
+    content.append(prompt_text)
+    return [{"role": "user", "content": content}]
+
+
 def _vlm_chat(model, tokenizer, msgs: list[dict], max_new_tokens: int) -> str:
-    """Call a MiniCPM-V .chat() with graceful kwargs fallbacks across model revisions."""
+    """Call a MiniCPM-V .chat() with graceful kwargs fallbacks across model revisions (4.5 path)."""
     out = ""
     for extra in ({"max_new_tokens": max_new_tokens, "sampling": False},
                   {"max_new_tokens": max_new_tokens},
@@ -799,28 +846,94 @@ def _vlm_chat(model, tokenizer, msgs: list[dict], max_new_tokens: int) -> str:
     return out if isinstance(out, str) else str(out)
 
 
+def _vlm_generate_native(model, processor, messages: list[dict], max_new_tokens: int,
+                         downsample_mode: str = "16x") -> str:
+    """Generate with a native MiniCPM-V 4.6 model via apply_chat_template + generate.
+
+    Mirrors the official MiniCPM-V-4.6 transformers recipe (greedy decoding, thinking left
+    off by the chat template's default). The image-only kwargs (downsample_mode/max_slice_nums)
+    are passed defensively so a text-only call never breaks on an older processor signature.
+    """
+    import torch
+
+    try:
+        inputs = processor.apply_chat_template(
+            messages, tokenize=True, add_generation_prompt=True,
+            return_dict=True, return_tensors="pt",
+            downsample_mode=downsample_mode, max_slice_nums=36,
+        )
+    except TypeError:
+        inputs = processor.apply_chat_template(
+            messages, tokenize=True, add_generation_prompt=True,
+            return_dict=True, return_tensors="pt",
+        )
+    inputs = inputs.to(model.device)
+
+    gen_kwargs = {"max_new_tokens": max_new_tokens, "do_sample": False}
+    generated_ids = None
+    for extra in ({"downsample_mode": downsample_mode}, {}):
+        try:
+            with torch.no_grad():
+                generated_ids = model.generate(**inputs, **gen_kwargs, **extra)
+            break
+        except (TypeError, ValueError):
+            continue
+    if generated_ids is None:
+        with torch.no_grad():
+            generated_ids = model.generate(**inputs, **gen_kwargs)
+
+    input_ids = inputs["input_ids"]
+    trimmed = [out_ids[len(in_ids):] for in_ids, out_ids in zip(input_ids, generated_ids)]
+    decoded = processor.batch_decode(
+        trimmed, skip_special_tokens=True, clean_up_tokenization_spaces=False
+    )
+    return decoded[0] if decoded else ""
+
+
+def _load_vlm_fresh(model_id: str):
+    """Load a MiniCPM-V (model, helper) pair on CPU. helper is a processor (4.6) or tokenizer (4.5)."""
+    import torch
+
+    if is_minicpm_v_native(model_id):
+        from transformers import AutoModelForImageTextToText, AutoProcessor
+
+        model = AutoModelForImageTextToText.from_pretrained(
+            model_id, torch_dtype=torch.bfloat16, attn_implementation="sdpa"
+        ).eval()
+        processor = AutoProcessor.from_pretrained(model_id)
+        return model, processor
+
+    from transformers import AutoModel, AutoTokenizer
+
+    model = AutoModel.from_pretrained(
+        model_id, trust_remote_code=True, attn_implementation="sdpa", torch_dtype=torch.bfloat16
+    ).eval()
+    tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
+    return model, tokenizer
+
+
+def _run_vlm(model, helper, messages: list[dict], max_new_tokens: int, model_id: str) -> str:
+    """Dispatch a multimodal generation to the right MiniCPM-V API for ``model_id``."""
+    if is_minicpm_v_native(model_id):
+        return _vlm_generate_native(model, helper, messages, max_new_tokens)
+    return _vlm_chat(model, helper, messages, max_new_tokens)
+
+
 def minicpm_v_complete(prompt_text: str, model_id: str, image_path: str | None = None,
                        max_new_tokens: int = 520) -> str:
-    """Generate text with a MiniCPM-V vision-language model via its chat API.
+    """Generate text with a MiniCPM-V vision-language model via its multimodal API.
 
-    This lets MiniCPM-V-4.5 be the primary engine: it writes the rescue plan/drills from the text
+    This lets MiniCPM-V 4.6 be the primary engine: it writes the rescue plan/drills from the text
     prompt, and - when a syllabus photo is supplied - reads the image directly in the same
-    multimodal call. Uses the resident model when available (fast path: no reload); otherwise
-    loads fresh and frees afterwards to stay within the 24 GB ZeroGPU budget.
+    multimodal call. MiniCPM-V 4.6 runs through the native ``apply_chat_template`` + ``generate``
+    path; an explicit ``MODEL_ID=openbmb/MiniCPM-V-4_5`` still uses the legacy ``.chat()`` path.
+    Uses the resident model when available (fast path: no reload); otherwise loads fresh and frees
+    afterwards to stay within the 24 GB ZeroGPU budget.
     """
     global TRANSFORMER_DEVICE_NOTE
     import torch
-    from transformers import AutoModel, AutoTokenizer
 
-    content: list = []
-    if image_path:
-        try:
-            from PIL import Image
-            content.append(Image.open(image_path).convert("RGB"))
-        except Exception:
-            pass
-    content.append(prompt_text)
-    msgs = [{"role": "user", "content": content}]
+    messages = _build_vlm_messages(prompt_text, image_path, is_minicpm_v_native(model_id))
 
     # Fast path: reuse the resident model (loaded at boot or on a previous call).
     if vlm_resident_enabled():
@@ -828,7 +941,7 @@ def minicpm_v_complete(prompt_text: str, model_id: str, image_path: str | None =
             load_resident_vlm(model_id)
         pair = resident_vlm(model_id)
         if pair is not None:
-            model, tokenizer = pair
+            model, helper = pair
             if torch.cuda.is_available():
                 try:  # ensure the weights are actually on the GPU inside this window
                     if next(model.parameters()).device.type != "cuda":
@@ -838,20 +951,17 @@ def minicpm_v_complete(prompt_text: str, model_id: str, image_path: str | None =
                 TRANSFORMER_DEVICE_NOTE = "CUDA/ZeroGPU"
             else:
                 TRANSFORMER_DEVICE_NOTE = "CPU"
-            return strip_hidden_reasoning(_vlm_chat(model, tokenizer, msgs, max_new_tokens))
+            return strip_hidden_reasoning(_run_vlm(model, helper, messages, max_new_tokens, model_id))
 
     model = None
     try:
-        model = AutoModel.from_pretrained(
-            model_id, trust_remote_code=True, attn_implementation="sdpa", torch_dtype=torch.bfloat16
-        ).eval()
+        model, helper = _load_vlm_fresh(model_id)
         if torch.cuda.is_available():
             model = model.cuda()
             TRANSFORMER_DEVICE_NOTE = "CUDA/ZeroGPU"
         else:
             TRANSFORMER_DEVICE_NOTE = "CPU"
-        tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
-        out = _vlm_chat(model, tokenizer, msgs, max_new_tokens)
+        out = _run_vlm(model, helper, messages, max_new_tokens, model_id)
         return strip_hidden_reasoning(out)
     finally:
         try:
@@ -1061,7 +1171,7 @@ def answer_drills(drill_markdown: str, subject: str, model_id: str | None = None
     return "\n".join(lines), "Self-check method (model answers unavailable)."
 
 
-VISION_MODEL_ID = os.getenv("VISION_MODEL_ID", "openbmb/MiniCPM-V-4_5")
+VISION_MODEL_ID = os.getenv("VISION_MODEL_ID", "openbmb/MiniCPM-V-4.6")
 VISION_QUESTION = (
     "This is a photo of a student's syllabus, timetable, textbook page, or notes. "
     "List ONLY the exam topics or chapter headings you can see, as a short comma-separated "
@@ -1072,35 +1182,36 @@ VISION_QUESTION = (
 def extract_topics_from_image(image_path: str) -> tuple[str, str]:
     """Read a photo of a syllabus/notes with MiniCPM-V and return (topics_text, status_note).
 
-    The vision model is loaded fresh and freed after each call so it never co-resides with the
-    text model in memory (both are ~8B and would not fit together). Any failure returns an empty
-    string plus a friendly note, so the caller keeps working and the student can just type topics.
+    MiniCPM-V 4.6 reads the image through its native processor + generate path; an explicit
+    MiniCPM-V-4_5 override uses the legacy .chat() path. Outside the resident fast path the model
+    is loaded fresh and freed after the call so it never co-resides with another big model in
+    memory. Any failure returns an empty string plus a friendly note, so the caller keeps working
+    and the student can just type topics.
     """
     if not image_path:
         return "", "No image provided - upload a photo or type your topics."
     try:
-        import torch
-        from PIL import Image
-        from transformers import AutoModel, AutoTokenizer
+        import torch  # noqa: F401 - confirm the runtime has torch before loading a model
     except Exception as exc:  # pragma: no cover - depends on runtime deps
         return "", f"Vision support is unavailable here ({exc}). Type your topics instead."
+
+    native = is_minicpm_v_native(VISION_MODEL_ID)
+    messages = _build_vlm_messages(VISION_QUESTION, image_path, native)
 
     # Fast path: the resident model reads the photo with no reload.
     pair = resident_vlm(VISION_MODEL_ID)
     if pair is not None:
         try:
-            image = Image.open(image_path).convert("RGB")
-            model, tokenizer = pair
+            import torch
+
+            model, helper = pair
             if torch.cuda.is_available():
                 try:
                     if next(model.parameters()).device.type != "cuda":
                         model = model.cuda()
                 except Exception:
                     pass
-            answer = _vlm_chat(
-                model, tokenizer,
-                [{"role": "user", "content": [image, VISION_QUESTION]}], 320,
-            )
+            answer = _run_vlm(model, helper, messages, 320, VISION_MODEL_ID)
             topics = clip_text(compact(answer), 600)
             if not topics:
                 return "", "Could not find topics in that photo. Try a clearer image or type them."
@@ -1110,17 +1221,12 @@ def extract_topics_from_image(image_path: str) -> tuple[str, str]:
 
     model = None
     try:
-        image = Image.open(image_path).convert("RGB")
-        model = AutoModel.from_pretrained(
-            VISION_MODEL_ID,
-            trust_remote_code=True,
-            attn_implementation="sdpa",
-            torch_dtype=torch.bfloat16,
-        ).eval()
+        import torch
+
+        model, helper = _load_vlm_fresh(VISION_MODEL_ID)
         if torch.cuda.is_available():
             model = model.cuda()
-        tokenizer = AutoTokenizer.from_pretrained(VISION_MODEL_ID, trust_remote_code=True)
-        answer = model.chat(msgs=[{"role": "user", "content": [image, VISION_QUESTION]}], tokenizer=tokenizer)
+        answer = _run_vlm(model, helper, messages, 320, VISION_MODEL_ID)
         topics = clip_text(compact(answer), 600)
         if not topics:
             return "", "Could not find topics in that photo. Try a clearer image or type them."

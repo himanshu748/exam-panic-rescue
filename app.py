@@ -1089,6 +1089,86 @@ CSS = """
     flex: 1 1 100%;
   }
 }
+
+/* ----- Output tabs: Live Coach / Rescue Plan / Final Sheet / Resources -----
+   Selectors are deliberately doubled (Gradio class names + ARIA roles) so the
+   cream/green styling lands regardless of the exact Gradio 6 tab DOM. */
+#output-tabs {
+  border: none;
+  margin-top: 2px;
+}
+
+#output-tabs > .tab-nav,
+#output-tabs [role="tablist"] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  border: none !important;
+  margin-bottom: 12px;
+}
+
+#output-tabs .tab-nav button,
+#output-tabs button[role="tab"] {
+  border: 1px solid rgba(7, 22, 19, 0.30) !important;
+  border-radius: 14px !important;
+  background: #fffdf7 !important;
+  color: var(--muted) !important;
+  font-size: 14.5px !important;
+  font-weight: 850 !important;
+  padding: 8px 14px !important;
+  min-height: 40px;
+}
+
+#output-tabs .tab-nav button:hover,
+#output-tabs button[role="tab"]:hover {
+  border-color: rgba(0, 108, 91, 0.40) !important;
+  background: rgba(0, 108, 91, 0.07) !important;
+}
+
+#output-tabs .tab-nav button.selected,
+#output-tabs button[role="tab"][aria-selected="true"] {
+  background: var(--green) !important;
+  border-color: var(--green) !important;
+  color: #fff !important;
+  box-shadow: 0 8px 18px rgba(0, 108, 91, 0.24);
+}
+
+#output-tabs .tabitem,
+#output-tabs [role="tabpanel"] {
+  padding-top: 6px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  #output-tabs .tabitem,
+  #output-tabs [role="tabpanel"] {
+    animation: epr-tab-in 240ms ease-out;
+  }
+
+  @keyframes epr-tab-in {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* ----- Clearer wizard step states (active stands out, done is checked) ----- */
+.wiz-active .wiz-bub {
+  box-shadow: 0 0 0 4px rgba(0, 108, 91, 0.18), 0 8px 18px rgba(0, 108, 91, 0.30);
+}
+
+.wiz-active .wiz-lab {
+  color: var(--green-dark);
+  font-weight: 900;
+}
+
+.wiz-done .wiz-bub {
+  background: rgba(0, 108, 91, 0.18);
+  border-color: rgba(0, 88, 68, 0.55);
+  color: var(--green-dark);
+}
+
+.wiz-todo .wiz-bub {
+  opacity: 0.78;
+}
 """
 
 
@@ -1122,7 +1202,7 @@ CLAIM_STATUS_HTML = """
     </div>
   </section>
   <section class="model-budget" aria-label="Runtime claim status">
-    <div class="budget-card"><b>Model budget</b><span>MiniCPM-V-4.5 fits the <=32B rule; hardware is the real gate.</span></div>
+    <div class="budget-card"><b>Model budget</b><span>MiniCPM-V 4.6 fits the <=32B rule; hardware is the real gate.</span></div>
     <div class="budget-card"><b>ZeroGPU verified</b><span>Live Space smoke generated with MiniCPM on CUDA/ZeroGPU; keep calls focused inside quota.</span></div>
     <div class="budget-card"><b>Default target</b><span>OpenBMB MiniCPM stays the submission-aligned model path when hardware can run it.</span></div>
   </section>
@@ -1149,7 +1229,7 @@ def _gpu_build_plan(
     panic_note: str,
     known_material: str,
     confidence: int,
-    model_choice: str = "openbmb/MiniCPM-V-4_5",
+    model_choice: str = "openbmb/MiniCPM-V-4.6",
     image_path: str | None = None,
 ):
     return build_rescue_plan(
@@ -1173,7 +1253,7 @@ def generate(
     panic_note: str,
     known_material: str,
     confidence: int,
-    model_choice: str = "openbmb/MiniCPM-V-4_5",
+    model_choice: str = "openbmb/MiniCPM-V-4.6",
     image_path: str | None = None,
 ):
     # Download weights on CPU first so a cold model never eats the GPU duration budget.
@@ -1289,7 +1369,7 @@ def _gpu_show_answers(drill_markdown, subject, model_choice):
     return answers
 
 
-def show_answers(drill_markdown, subject, model_choice="openbmb/MiniCPM-V-4_5"):
+def show_answers(drill_markdown, subject, model_choice="openbmb/MiniCPM-V-4.6"):
     ensure_weights(model_choice)
     rewarm_after = False
     if not _is_default_vlm(model_choice) and "gguf" not in (model_choice or "").lower():
@@ -1368,8 +1448,10 @@ def wizard_progress_html(step: int) -> str:
     dots = []
     for index, label in enumerate(WIZARD_LABELS, start=1):
         state = "wiz-done" if index < current else ("wiz-active" if index == current else "wiz-todo")
+        glyph = "✓" if state == "wiz-done" else str(index)
+        aria = ' aria-current="step"' if state == "wiz-active" else ""
         dots.append(
-            f'<li class="wiz-dot {state}"><span class="wiz-bub">{index}</span>'
+            f'<li class="wiz-dot {state}"{aria}><span class="wiz-bub">{glyph}</span>'
             f'<span class="wiz-lab">{label}</span></li>'
         )
     hidden = ", ".join(f"#wiz-step-{i}" for i in range(1, len(WIZARD_LABELS) + 1) if i != current)
@@ -1383,7 +1465,7 @@ def wizard_progress_html(step: int) -> str:
 def _boot_warmup() -> None:
     """Warm the default model before the first student clicks.
 
-    Downloads the MiniCPM-V-4.5 weights and loads them resident (the documented
+    Downloads the MiniCPM-V 4.6 weights and loads them resident (the documented
     ZeroGPU main-process pattern). Runs in a daemon thread at startup so the UI is
     never blocked; on CPU-only or local runs every step is a guarded no-op. This
     removes the silent 60-90 s first-click penalty that previously followed every
@@ -1437,7 +1519,7 @@ def _gen_done():
 
 
 def _vision_busy():
-    return "⏳ Reading your photo with MiniCPM-V-4.5 — usually well under a minute when the model is warm."
+    return "⏳ Reading your photo with MiniCPM-V 4.6 — usually well under a minute when the model is warm."
 
 
 def _answers_busy():
@@ -1686,7 +1768,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                             height=180,
                         )
                         gr.Markdown(
-                            "MiniCPM-V-4.5 reads the image, extracts visible topics, and uses them to build the rescue plan."
+                            "MiniCPM-V 4.6 reads the image, extracts visible topics, and uses them to build the rescue plan."
                         )
 
                 with gr.Column(elem_id="wiz-step-3", elem_classes=["wiz-step"]) as step3_col:
@@ -1701,7 +1783,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     )
                     extract_btn = gr.Button("Extract topics from photo", elem_classes=["secondary-action"])
                     vision_note = gr.Markdown(
-                        "Upload a photo in Step 2, then tap Extract — MiniCPM-V-4.5 reads it and fills your topics box. Always check what it found."
+                        "Upload a photo in Step 2, then tap Extract — MiniCPM-V 4.6 reads it and fills your topics box. Always check what it found."
                     )
 
                 with gr.Column(elem_id="wiz-step-4", elem_classes=["wiz-step"]) as step4_col:
@@ -1718,12 +1800,12 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                         model_choice = gr.Dropdown(
                             label="Generation model (all ≤32B)",
                             choices=[
-                                ("OpenBMB MiniCPM-V-4.5 — default (reads text + your photo)", "openbmb/MiniCPM-V-4_5"),
+                                ("OpenBMB MiniCPM-V 4.6 — default (reads text + your photo)", "openbmb/MiniCPM-V-4.6"),
                                 ("NVIDIA Nemotron-Mini-4B (≤4B · Tiny Titan)", "nvidia/Nemotron-Mini-4B-Instruct"),
                                 ("OpenBMB MiniCPM4 0.5B · llama.cpp GGUF (CPU runtime · Tiny Titan)", "openbmb/MiniCPM4-0.5B-QAT-Int4-GGUF"),
                             ],
-                            value="openbmb/MiniCPM-V-4_5",
-                            info="MiniCPM-V-4.5 writes your plan and can read your syllabus photo. Nemotron-4B is a text-only alternate. The 0.5B option runs through the llama.cpp runtime on CPU. The runtime note shows exactly what ran.",
+                            value="openbmb/MiniCPM-V-4.6",
+                            info="MiniCPM-V 4.6 writes your plan and can read your syllabus photo. Nemotron-4B is a text-only alternate. The 0.5B option runs through the llama.cpp runtime on CPU. The runtime note shows exactly what ran.",
                         )
                     run = gr.Button("Build my rescue packet", variant="primary", elem_classes=["primary-action"])
                     gen_status = gr.HTML("", elem_id="gen-status", container=False)
@@ -1739,7 +1821,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                         container=False,
                     )
                     gr.HTML(
-                        '<p class="coach-hint">After generating your rescue plan, start the live coach to walk through the time blocks step by step. The coach controls are at the top of the results panel →</p>',
+                        '<p class="coach-hint">After generating your rescue plan, start the live coach to walk through the time blocks step by step. Open the <b>Live Coach</b> tab in the results panel →</p>',
                         container=False,
                     )
 
@@ -1777,60 +1859,71 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     """
 <div class="section-title">
   <h2>Your low-time learning packet</h2>
-  <p>Coach at the top, then plan → drills → triage → final sheet.</p>
+  <p>Four tabs: Live Coach, Rescue Plan, Final Sheet, Resources. Your plan opens automatically.</p>
 </div>
 """,
                     container=False,
                 )
-                gr.HTML('<div class="runtime-label">Live coach</div>', container=False)
+                # Invisible state + timer live outside the tabs so coaching keeps running
+                # no matter which tab is open.
                 coach_start = gr.State(None)
                 coach_panic_until = gr.State(None)
-                coach_display = gr.HTML(
-                    value='<div class="coach-card coach-idle">Build a packet, then press <b>Start coaching</b>. The coach gives the next action, proof target, and timer for each block.</div>',
-                    container=False,
-                )
-                with gr.Row():
-                    coach_start_btn = gr.Button("Start coaching", elem_classes=["primary-action"])
-                    coach_done_btn = gr.Button("I finished this block", elem_classes=["secondary-action"])
-                    panic_reset_btn = gr.Button("20-sec panic reset", elem_classes=["secondary-action"])
-                    coach_reset_btn = gr.Button("Reset", elem_classes=["secondary-action"])
-                gr.HTML(
-                    '<p class="coach-hint">After generating your rescue plan, start the coach. It keeps the current action, proof target, and next block visible while you study.</p>',
-                    container=False,
-                )
                 coach_timer = gr.Timer(1.0, active=False)
-                rescue_output = gr.Markdown(
-                    value="### Rescue plan\n\nAppears after you build the packet (step 4).",
-                    elem_classes=["panel"],
-                )
-                drill_output = gr.Markdown(
-                    value="### Drill deck\n\nFive drills land here after generation.",
-                    elem_classes=["panel"],
-                )
-                answers_btn = gr.Button("Show worked answers", elem_classes=["secondary-action"])
-                answers_output = gr.Markdown(
-                    value="### Worked answers\n\nReveal model-written answers after you build a packet.",
-                    elem_classes=["panel"],
-                )
-                triage_output = gr.Markdown(
-                    value="### Triage clock\n\nYour time blocks land here.",
-                    elem_classes=["panel"],
-                )
-                final_sheet_output = gr.HTML(
-                    value='<div class="final-sheet"><h3>Final sheet</h3><p>Build a packet to create the one-page sheet to read before the exam.</p></div>',
-                    elem_classes=["panel"],
-                )
-                download_btn = gr.DownloadButton("⬇ Download / print", elem_classes=["secondary-action"])
-                with gr.Accordion("More — study receipt · runtime", open=False):
-                    demo_receipt_output = gr.Markdown(
-                        value="### Study receipt\n\nA short before/after receipt.",
-                        elem_classes=["panel"],
-                    )
-                    gr.HTML('<div class="runtime-label">Runtime note</div>', container=False)
-                    model_note = gr.Markdown(
-                        value="No generation yet. This note always reports exactly which small model ran (default OpenBMB MiniCPM-V-4.5 on ZeroGPU) or why a fallback was used.",
-                        elem_id="model-note",
-                    )
+
+                with gr.Tabs(elem_id="output-tabs") as output_tabs:
+                    with gr.Tab("Live coach", id="coach"):
+                        gr.HTML('<div class="runtime-label">Live coach</div>', container=False)
+                        coach_display = gr.HTML(
+                            value='<div class="coach-card coach-idle">Build a packet, then press <b>Start coaching</b>. The coach gives the next action, proof target, and timer for each block.</div>',
+                            container=False,
+                        )
+                        with gr.Row():
+                            coach_start_btn = gr.Button("Start coaching", elem_classes=["primary-action"])
+                            coach_done_btn = gr.Button("I finished this block", elem_classes=["secondary-action"])
+                            panic_reset_btn = gr.Button("20-sec panic reset", elem_classes=["secondary-action"])
+                            coach_reset_btn = gr.Button("Reset", elem_classes=["secondary-action"])
+                        gr.HTML(
+                            '<p class="coach-hint">After generating your rescue plan, start the coach. It keeps the current action, proof target, and next block visible while you study.</p>',
+                            container=False,
+                        )
+
+                    with gr.Tab("Rescue plan", id="plan"):
+                        rescue_output = gr.Markdown(
+                            value="### Rescue plan\n\nAppears after you build the packet (step 4).",
+                            elem_classes=["panel"],
+                        )
+                        drill_output = gr.Markdown(
+                            value="### Drill deck\n\nFive drills land here after generation.",
+                            elem_classes=["panel"],
+                        )
+                        answers_btn = gr.Button("Show worked answers", elem_classes=["secondary-action"])
+                        answers_output = gr.Markdown(
+                            value="### Worked answers\n\nReveal model-written answers after you build a packet.",
+                            elem_classes=["panel"],
+                        )
+
+                    with gr.Tab("Final sheet", id="sheet"):
+                        triage_output = gr.Markdown(
+                            value="### Triage clock\n\nYour time blocks land here.",
+                            elem_classes=["panel"],
+                        )
+                        final_sheet_output = gr.HTML(
+                            value='<div class="final-sheet"><h3>Final sheet</h3><p>Build a packet to create the one-page sheet to read before the exam.</p></div>',
+                            elem_classes=["panel"],
+                        )
+                        download_btn = gr.DownloadButton("⬇ Download / print", elem_classes=["secondary-action"])
+
+                    with gr.Tab("Resources", id="resources"):
+                        demo_receipt_output = gr.Markdown(
+                            value="### Study receipt\n\nA short before/after receipt.",
+                            elem_classes=["panel"],
+                        )
+                        gr.HTML('<div class="runtime-label">Runtime note</div>', container=False)
+                        model_note = gr.Markdown(
+                            value="No generation yet. This note always reports exactly which small model ran (default OpenBMB MiniCPM-V 4.6 on ZeroGPU) or why a fallback was used.",
+                            elem_id="model-note",
+                        )
+                        gr.HTML(CLAIM_STATUS_HTML, container=False)
 
         outputs = [
             rescue_output,
@@ -1920,6 +2013,11 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
     def _wizard_fifth():
         return _wizard_go(5)
 
+    def _open_plan_tab():
+        # After generating, surface the fresh packet by opening the Rescue plan tab.
+        # (The left wizard still advances to the Live coach step.)
+        return gr.Tabs(selected="plan")
+
     def _advance_after_extract(note_text, step):
         # Move to step 4 only when the photo actually yielded topics; otherwise stay on
         # step 3 so the student can read what went wrong (or just type topics instead).
@@ -1939,7 +2037,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
         api_name="generate",
     ).then(_gen_done, outputs=[gen_status], queue=False).then(
         _wizard_fifth, outputs=nav_outputs, queue=False,
-    )
+    ).then(_open_plan_tab, outputs=[output_tabs], queue=False)
 
     extract_btn.click(_vision_busy, outputs=[vision_note], queue=False).then(
         extract_from_photo,
