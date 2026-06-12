@@ -698,6 +698,40 @@ CSS = """
   margin: 6px 0 2px;
 }
 
+.hero-compact {
+  padding: clamp(14px, 2.2vw, 22px);
+}
+
+.hero-compact h1 {
+  font-size: clamp(28px, 4vw, 44px);
+  margin: 10px 0 6px;
+}
+
+.hero-compact p {
+  font-size: clamp(15px, 1.8vw, 18px);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .wiz-step {
+    animation: wiz-step-in 280ms ease-out;
+  }
+
+  @keyframes wiz-step-in {
+    from { opacity: 0; transform: translateY(7px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .wiz-active .wiz-bub {
+    animation: wiz-dot-pop 320ms ease-out;
+  }
+
+  @keyframes wiz-dot-pop {
+    0% { transform: scale(0.7); }
+    60% { transform: scale(1.14); }
+    100% { transform: scale(1); }
+  }
+}
+
 @media (max-width: 640px) {
   .wiz-lab {
     display: none;
@@ -1043,22 +1077,11 @@ CSS = """
 
 
 HERO_HTML = """
-<section class="hero">
+<section class="hero hero-compact">
   <div>
     <div class="eyebrow">Exam Panic Rescue</div>
     <h1>When time is low, stop rereading everything.</h1>
-    <p>A practical study rescue for students in the final crunch: paste what you know, what scares you, and how much time is left. Get one ranked path, five drills, a triage clock, and the last sheet to read before the exam.</p>
-    <div class="hero-steps" aria-label="Rescue flow">
-      <span>1. Dump the panic</span>
-      <span>2. Rank the leaks</span>
-      <span>3. Drill only what matters</span>
-      <span>4. Walk in with a final sheet</span>
-    </div>
-    <div class="hero-proof" aria-label="Rescue packet contents">
-      <div><b>5</b><span>practice drills generated from the student's own topics</span></div>
-      <div><b>1</b><span>proof target before the student stops studying</span></div>
-      <div><b>0</b><span>new chapters in the last block; protect marks from what is already possible</span></div>
-    </div>
+    <p>Five guided steps: tell us the exam, share what you have (or a photo), and get a ranked plan, drills, and a live coach.</p>
   </div>
 </section>
 """
@@ -1411,6 +1434,27 @@ STOP_TICK_JS = """
 }
 """
 
+# Smooth-scroll the wizard card into view when the step changes (keeps the flow visible
+# on phones, where the tapped button can sit far below the top of the card).
+SCROLL_CARD_JS = """
+() => {
+  try {
+    const el = document.querySelector('.input-card');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (e) {}
+}
+"""
+
+# After generation finishes, bring the results (coach + plan) into view.
+SCROLL_RESULTS_JS = """
+() => {
+  try {
+    const el = document.querySelector('.output-stack');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (e) {}
+}
+"""
+
 
 # The whole design is built for a light/cream surface, so force light mode even when the
 # visitor's device is in dark mode (otherwise dark Gradio surfaces hide the dark label text).
@@ -1432,26 +1476,6 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
     gr.HTML(f"<style>{CSS}</style>", container=False)
     with gr.Column(elem_classes=["app-shell"]):
         gr.HTML(HERO_HTML, container=False)
-        gr.HTML(
-            """
-<section class="demo-status" aria-label="Study status">
-  <div class="status-card"><b>Start here</b><span>Paste your real exam details first. Samples are only there to show the flow.</span></div>
-  <div class="status-card"><b>ZeroGPU live</b><span>MiniCPM runs only when you build a packet; CPU fallback remains if hardware is switched back.</span></div>
-  <div class="status-card"><b>Low-time rule</b><span>Do not learn everything. Choose marks to protect, drill one leak, then make the final sheet.</span></div>
-</section>
-""",
-            container=False,
-        )
-        gr.HTML(
-            """
-<section class="model-budget" aria-label="Low-time study method">
-  <div class="budget-card"><b>First 2 minutes</b><span>Write what you remember, circle one leak, and stop opening new chapters.</span></div>
-  <div class="budget-card"><b>Main block</b><span>Drill the highest-value topic with one format-specific proof target.</span></div>
-  <div class="budget-card"><b>Final block</b><span>Read only the final sheet: first action, protected marks, and the do-not-do guardrail.</span></div>
-</section>
-""",
-            container=False,
-        )
 
         with gr.Row(equal_height=False, elem_id="main-workspace"):
             with gr.Column(scale=5, min_width=320, elem_classes=["input-card"]):
@@ -1459,7 +1483,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     """
 <div class="section-title">
   <h2>Build your rescue packet</h2>
-  <p>A guided rescue in five quick steps — use <b>Next</b> and <b>Back</b> to move through. Paste your panic dump or upload your syllabus / exam sheet, then generate a rescue plan.</p>
+  <p>Five quick steps. The flow moves with you.</p>
 </div>
 """,
                     container=False,
@@ -1472,7 +1496,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                         """
 <div class="wiz-head">
   <span class="wiz-num">1</span>
-  <div><b>Tell us the exam</b><span>Who is studying, which exam, and how long is left.</span></div>
+  <div><b>Tell us the exam</b><span>Name, subject, time left.</span></div>
 </div>
 """,
                         container=False,
@@ -1481,20 +1505,20 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                         label="Student",
                         value=EXAMPLE_INPUT["student_name"],
                         lines=1,
-                        info="First name is enough.",
+                        info=None,
                     )
                     subject = gr.Textbox(
                         label="Exam subject",
                         value=EXAMPLE_INPUT["subject"],
                         lines=2,
-                        info="Include class/chapter if useful.",
+                        info=None,
                     )
                     with gr.Row():
                         exam_format = gr.Dropdown(
                             label="Exam format",
                             choices=["Mixed", "Multiple choice", "Short answer", "Long answer"],
                             value=EXAMPLE_INPUT["exam_format"],
-                            info="This changes the drill style.",
+                            info=None,
                         )
                         confidence = gr.Slider(
                             label="Confidence",
@@ -1502,7 +1526,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                             maximum=5,
                             value=EXAMPLE_INPUT["confidence"],
                             step=1,
-                            info="1 = frozen, 5 = steady.",
+                            info="1 = frozen · 5 = steady.",
                         )
                     time_left_minutes = gr.Slider(
                         label="Minutes left",
@@ -1510,7 +1534,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                         maximum=1440,
                         value=EXAMPLE_INPUT["time_left_minutes"],
                         step=15,
-                        info="From 15 minutes up to a full day (1440 min). The plan changes with the time you have.",
+                        info="15 min – full day.",
                     )
                     example = gr.Button("Load example", elem_classes=["secondary-action"])
 
@@ -1519,7 +1543,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                         """
 <div class="wiz-head">
   <span class="wiz-num">2</span>
-  <div><b>Share what you have</b><span>Paste your panic dump and topics — or upload a photo to scan in the next step.</span></div>
+  <div><b>Share what you have</b><span>Panic dump, topics — or a photo to scan next.</span></div>
 </div>
 """,
                         container=False,
@@ -1540,13 +1564,13 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                         label="Panic dump",
                         value=EXAMPLE_INPUT["panic_note"],
                         lines=5,
-                        info="What feels scary, blank, messy, or urgent?",
+                        info=None,
                     )
                     known_material = gr.Textbox(
                         label="Syllabus, notes, or weak topics",
                         value=EXAMPLE_INPUT["known_material"],
                         lines=5,
-                        info="Paste chapter headings, topics, mistakes, or rough notes.",
+                        info=None,
                     )
                     with gr.Accordion("📷 Upload syllabus / exam sheet / notes photo", open=True):
                         syllabus_image = gr.Image(
@@ -1563,7 +1587,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                         """
 <div class="wiz-head">
   <span class="wiz-num">3</span>
-  <div><b>Scan your image</b><span>Optional — if you uploaded a photo, pull its visible topics into your topics box.</span></div>
+  <div><b>Scan your image</b><span>Optional — pull the photo's topics into your inputs.</span></div>
 </div>
 """,
                         container=False,
@@ -1578,7 +1602,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                         """
 <div class="wiz-head">
   <span class="wiz-num">4</span>
-  <div><b>Generate your rescue plan</b><span>Pick the model if you like, then build the packet. It appears in the results panel.</span></div>
+  <div><b>Generate your rescue plan</b><span>Build the packet. Topics from your photo are already included.</span></div>
 </div>
 """,
                         container=False,
@@ -1602,7 +1626,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                         """
 <div class="wiz-head">
   <span class="wiz-num">5</span>
-  <div><b>Follow with the live coach</b><span>Your rescue plan and the live coach are in the results panel.</span></div>
+  <div><b>Follow with the live coach</b><span>Your plan is ready — the coach walks you through it.</span></div>
 </div>
 """,
                         container=False,
@@ -1613,8 +1637,8 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     )
 
                 with gr.Row(elem_classes=["wiz-nav"]):
-                    back_btn = gr.Button("← Back", elem_classes=["secondary-action"])
-                    next_btn = gr.Button("Next →", elem_classes=["primary-action"])
+                    back_btn = gr.Button("← Back", elem_classes=["secondary-action"], interactive=False)
+                    next_btn = gr.Button("Next: Share what you have →", elem_classes=["primary-action"])
 
                 inputs = [student_name, subject, time_left_minutes, exam_format, panic_note, known_material, confidence]
 
@@ -1622,7 +1646,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     gr.HTML(
                         """
 <h2>Try a sample scenario</h2>
-<p>Samples do not claim real-user data. They only show how the rescue changes for short answers, numericals, long answers, and MCQ traps. Loading one fills every step.</p>
+<p>One click fills every step (demo data, not real users).</p>
 """,
                         container=False,
                     )
@@ -1646,7 +1670,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     """
 <div class="section-title">
   <h2>Your low-time learning packet</h2>
-  <p>Follow this top to bottom: reset, drill, protect marks, stop the spiral, and keep one receipt of what changed.</p>
+  <p>Coach at the top, then plan → drills → triage → final sheet.</p>
 </div>
 """,
                     container=False,
@@ -1654,7 +1678,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                 gr.HTML('<div class="runtime-label">Live coach</div>', container=False)
                 coach_start = gr.State(None)
                 coach_display = gr.HTML(
-                    value='<div class="coach-card coach-idle">Build a packet, then press <b>Start coaching</b> to run your triage clock in real time — it tells you what to do now and pings when to switch.</div>',
+                    value='<div class="coach-card coach-idle">Build a packet, then press <b>Start coaching</b> — it runs your triage clock live.</div>',
                     container=False,
                 )
                 with gr.Row():
@@ -1666,20 +1690,20 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                 )
                 coach_timer = gr.Timer(1.0, active=False)
                 rescue_output = gr.Markdown(
-                    value="### Ready when you are\n\nPaste the real exam details, then click **Build my rescue packet**. Nothing is generated until you ask for it.",
+                    value="### Rescue plan\n\nAppears after you build the packet (step 4).",
                     elem_classes=["panel"],
                 )
                 drill_output = gr.Markdown(
-                    value="### Drill deck\n\nFive drills appear here after generation — written by MiniCPM when the model runs, with built-in templates as a reliable fallback.",
+                    value="### Drill deck\n\nFive drills land here after generation.",
                     elem_classes=["panel"],
                 )
                 answers_btn = gr.Button("Show worked answers", elem_classes=["secondary-action"])
                 answers_output = gr.Markdown(
-                    value="### Worked answers\n\nBuild a packet, then reveal model-written answers to self-check your drills.",
+                    value="### Worked answers\n\nReveal model-written answers after you build a packet.",
                     elem_classes=["panel"],
                 )
                 triage_output = gr.Markdown(
-                    value="### Triage clock\n\nThe time blocks will appear here after generation.",
+                    value="### Triage clock\n\nYour time blocks land here.",
                     elem_classes=["panel"],
                 )
                 final_sheet_output = gr.HTML(
@@ -1691,11 +1715,11 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     read_btn = gr.Button("🔊 Read aloud", elem_classes=["secondary-action"])
                 read_audio = gr.Audio(label="Final sheet, read aloud", type="filepath", interactive=False, visible=False)
                 read_note = gr.Markdown(
-                    "Tip: build a packet, then tap Read aloud to hear your final sheet (OpenBMB VoxCPM2)."
+                    "Build a packet, then hear your final sheet (OpenBMB VoxCPM2)."
                 )
                 with gr.Accordion("More — study receipt · field note · runtime", open=False):
                     demo_receipt_output = gr.Markdown(
-                        value="### Study receipt\n\nA short before/after receipt will appear here after generation.",
+                        value="### Study receipt\n\nA short before/after receipt.",
                         elem_classes=["panel"],
                     )
                     field_note_output = gr.Markdown(
@@ -1704,7 +1728,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     )
                     gr.HTML('<div class="runtime-label">Runtime note</div>', container=False)
                     model_note = gr.Markdown(
-                        value="No generation yet. When you build a packet, this Space runs a small model (default OpenBMB MiniCPM-V-4.5, ≤32B) on ZeroGPU, or a deterministic fallback on CPU. This note always reports exactly what ran.",
+                        value="No generation yet. This note always reports exactly which small model ran (default OpenBMB MiniCPM-V-4.5 on ZeroGPU) or why a fallback was used.",
                         elem_id="model-note",
                     )
 
@@ -1719,13 +1743,6 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
         ]
         gr.HTML(FOOTER_HTML, container=False)
     demo.load(js=FORCE_LIGHT_JS)
-    run.click(_gen_busy, outputs=[gen_status], queue=False, js=TICK_JS).then(
-        generate,
-        inputs=inputs + [model_choice, syllabus_image],
-        outputs=outputs,
-        scroll_to_output=True,
-        api_name="generate",
-    ).then(_gen_done, outputs=[gen_status], queue=False, js=STOP_TICK_JS)
 
     def _start_coach(minutes):
         return time.time(), gr.Timer(active=True)
@@ -1760,7 +1777,12 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
     def _wizard_go(step):
         step = max(1, min(len(WIZARD_LABELS), int(step or 1)))
         col_updates = [gr.update(visible=(i + 1 == step)) for i in range(len(WIZARD_LABELS))]
-        return [step, wizard_progress_html(step)] + col_updates
+        back_update = gr.update(interactive=step > 1)
+        if step < len(WIZARD_LABELS):
+            next_update = gr.update(value=f"Next: {WIZARD_LABELS[step]} →", interactive=True)
+        else:
+            next_update = gr.update(value="All steps done ✓", interactive=False)
+        return [step, wizard_progress_html(step)] + col_updates + [back_update, next_update]
 
     def _wizard_next(step):
         return _wizard_go(int(step or 1) + 1)
@@ -1768,16 +1790,40 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
     def _wizard_back(step):
         return _wizard_go(int(step or 1) - 1)
 
+    def _wizard_first():
+        return _wizard_go(1)
+
+    def _wizard_fifth():
+        return _wizard_go(5)
+
+    def _advance_after_extract(note_text, step):
+        # Move to step 4 only when the photo actually yielded topics; otherwise stay on
+        # step 3 so the student can read what went wrong (or just type topics instead).
+        if isinstance(note_text, str) and note_text.startswith("Topics read from your photo"):
+            return _wizard_go(4)
+        return _wizard_go(int(step or 3))
+
     wizard_cols = [step1_col, step2_col, step3_col, step4_col, step5_col]
-    next_btn.click(_wizard_next, inputs=[wizard_step], outputs=[wizard_step, wiz_progress] + wizard_cols)
-    back_btn.click(_wizard_back, inputs=[wizard_step], outputs=[wizard_step, wiz_progress] + wizard_cols)
+    nav_outputs = [wizard_step, wiz_progress] + wizard_cols + [back_btn, next_btn]
+    next_btn.click(_wizard_next, inputs=[wizard_step], outputs=nav_outputs, js=SCROLL_CARD_JS)
+    back_btn.click(_wizard_back, inputs=[wizard_step], outputs=nav_outputs, js=SCROLL_CARD_JS)
+
+    run.click(_gen_busy, outputs=[gen_status], queue=False, js=TICK_JS).then(
+        generate,
+        inputs=inputs + [model_choice, syllabus_image],
+        outputs=outputs,
+        scroll_to_output=True,
+        api_name="generate",
+    ).then(_gen_done, outputs=[gen_status], queue=False, js=STOP_TICK_JS).then(
+        _wizard_fifth, outputs=nav_outputs, queue=False, js=SCROLL_RESULTS_JS,
+    )
 
     extract_btn.click(_vision_busy, outputs=[vision_note], queue=False).then(
         extract_from_photo,
         inputs=[syllabus_image],
         outputs=[known_material, vision_note],
         api_name="extract_topics",
-    )
+    ).then(_advance_after_extract, inputs=[vision_note, wizard_step], outputs=nav_outputs, queue=False)
     download_btn.click(
         download_packet,
         inputs=[rescue_output, drill_output, triage_output, final_sheet_output, demo_receipt_output],
@@ -1795,9 +1841,13 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
         outputs=[answers_output],
         api_name="show_answers",
     )
-    example.click(load_example, outputs=inputs, queue=False)
+    example.click(load_example, outputs=inputs, queue=False).then(
+        _wizard_first, outputs=nav_outputs, queue=False, js=SCROLL_CARD_JS,
+    )
     for case_button, case_index in case_buttons:
-        case_button.click(CASE_LOADERS[case_index], outputs=inputs, queue=False)
+        case_button.click(CASE_LOADERS[case_index], outputs=inputs, queue=False).then(
+            _wizard_first, outputs=nav_outputs, queue=False, js=SCROLL_CARD_JS,
+        )
 
 
 if __name__ == "__main__":
