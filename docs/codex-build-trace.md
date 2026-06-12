@@ -80,7 +80,7 @@ The app stays intentionally narrow: one stressed student, one exam, one time box
 - Unit tests pass across `18` cases.
 - Readiness smoke scores `24/24`.
 - Local Gradio smoke returned HTTP `200` after the latest UI/output pass.
-- Space package audit includes public-safe files and now requires the public build trace, demo script, development workflow, llama.cpp plan, and sponsor matrix.
+- Space package audit includes public-safe files and now requires the public build trace, demo script, judge-facing field notes, development workflow, llama.cpp plan, and sponsor matrix.
 - Space smoke checker verifies the public claim-status and student-first product markers in the served app.
 - Hugging Face CLI auth verified `HIMANSHUKUMARJHA` and `build-small-hackathon`.
 - Public GitHub repo exists with Codex-attributed commits: https://github.com/himanshu748/exam-panic-rescue
@@ -111,3 +111,4 @@ Keep this trace public-safe and add final public links when they exist:
 - Hugging Face Space: https://huggingface.co/spaces/build-small-hackathon/exam-panic-rescue
 - Public app trace dataset: https://huggingface.co/datasets/build-small-hackathon/exam-panic-rescue-build-trace
 - Demo video.
+- Judge-facing Field Notes.

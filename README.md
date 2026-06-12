@@ -58,7 +58,7 @@ Submission assets:
 
 - Demo video: recorded (49.6s walkthrough).
 - Social post (X thread, Backyard AI): live at https://x.com/jhahimanshu653/status/2063909355217453142
-- Build report ("what I built and what I learned"): [docs/build-report.md](docs/build-report.md)
+- Build report / Field Notes ("what I built and what I learned"): [docs/build-report.md](docs/build-report.md) and [docs/field-notes.md](docs/field-notes.md)
 - Open build traces (incl. the real-user session): https://huggingface.co/datasets/build-small-hackathon/exam-panic-rescue-build-trace
 
 Public build notes and demo prep are drafted in [docs/codex-build-trace.md](docs/codex-build-trace.md) and [docs/demo-script.md](docs/demo-script.md).
@@ -95,7 +95,7 @@ The on-screen runtime note always reports exactly which model ran and on what ha
 - Off-Brand angle: custom Gradio layout, clearly labeled sample cases, and a printable final-sheet artifact with a first action and a "do not do" guardrail.
 - Best Demo / Community Choice angle: the app now avoids automatic generation, so the live product path is easier to understand in a short video or social post.
 - Targetable with live evidence: NVIDIA Nemotron (selectable engine), Tiny Titan (≤4B — Nemotron-Mini-4B is the selectable ≤4B engine). Not claimed: Modal Awards (intentionally excluded), Well-Tuned (no real fine-tune), or Best Agent unless matching evidence is added.
-- Bonus quests: Off-Brand (custom UI), Sharing is Caring (public build-trace dataset, incl. the anonymized real-user session), **Llama Champion** (the MiniCPM4 0.5B GGUF engine runs live through the llama.cpp runtime), and **Tiny Titan** (that same genuinely-tiny 0.5B model).
+- Bonus quests: Off-Brand (custom UI), Field Notes (judge-facing build report), Sharing is Caring (public build-trace dataset, incl. the anonymized real-user session), **Llama Champion** (the MiniCPM4 0.5B GGUF engine runs live through the llama.cpp runtime), and **Tiny Titan** (that same genuinely-tiny 0.5B model).
 - Public app trace dataset: https://huggingface.co/datasets/build-small-hackathon/exam-panic-rescue-build-trace
 
 See [docs/sponsor-coverage.md](docs/sponsor-coverage.md) for the current sponsor/bonus matrix. Modal is intentionally not part of the product target.
@@ -161,6 +161,7 @@ internal scripts that are intentionally kept out of the public repo (see `.hfign
 not part of what reviewers need to run.
 
 See [docs/build-report.md](docs/build-report.md) for the public build report.
+See [docs/field-notes.md](docs/field-notes.md) for judge-facing Field Notes. They are intentionally not part of the student UI.
 See [data/app_traces_public.jsonl](data/app_traces_public.jsonl) for public-safe app traces with inputs, generated outputs, validation flags, and privacy labels.
 The same app trace dataset is mirrored on Hugging Face at https://huggingface.co/datasets/build-small-hackathon/exam-panic-rescue-build-trace.
 See [docs/development-workflow.md](docs/development-workflow.md) for local and JetBrains/PyCharm run workflows.
