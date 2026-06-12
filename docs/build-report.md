@@ -19,8 +19,8 @@ student what to do **next**, and nothing more.
 Exam Panic Rescue is deliberately narrow. A student pastes what they half-know, what's scaring
 them, and how many minutes are left — or snaps a photo of their syllabus — and gets back one
 ranked rescue plan, five practice drills written for their own topics, a triage clock that runs
-in real time, and a one-page final sheet to read before they walk in. It can read that sheet
-aloud. That's the whole product. The hard part was resisting everything else.
+in real time, and a one-page final sheet to read before they walk in. That's the whole product.
+The hard part was resisting everything else.
 
 ## What happened when a real student used it
 
@@ -54,7 +54,6 @@ you give them a tight job.
 | Model | Role |
 |-------|------|
 | OpenBMB MiniCPM-V-4.5 | Primary engine — writes the rescue plan, drills, and answers, and (being a vision-language model) reads a photo of the syllabus directly in the same call |
-| OpenBMB VoxCPM2 | Reads the final sheet aloud |
 | NVIDIA Nemotron-Mini-4B | Selectable text-only alternate (4B) |
 | OpenBMB MiniCPM4 0.5B (GGUF) | Selectable engine that runs through the **llama.cpp runtime** on CPU — the Llama Champion path, and a genuinely tiny (0.5B) Tiny Titan |
 

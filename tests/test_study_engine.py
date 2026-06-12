@@ -36,7 +36,6 @@ from study_engine import (
     proof_checklist,
     split_model_plan_and_drills,
     StudyInput,
-    synthesize_speech,
     time_blocks,
 )
 
@@ -146,11 +145,6 @@ class StudyEngineTest(unittest.TestCase):
         self.assertEqual(s1["next"], "Final")
         s_end = coach_state(blocks, 50 * 60)
         self.assertTrue(s_end["done"])
-
-    def test_synthesize_speech_handles_empty_text(self):
-        path, note = synthesize_speech("", "/tmp/x.wav")
-        self.assertIsNone(path)
-        self.assertIn("build a packet", note.lower())
 
     def test_extract_topics_from_image_handles_no_image(self):
         topics, note = extract_topics_from_image("")

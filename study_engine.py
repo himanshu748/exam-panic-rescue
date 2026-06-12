@@ -497,8 +497,8 @@ def ensure_weights(model_id: str) -> str:
 # documented ZeroGPU pattern is the opposite: load once in the main process (with
 # .cuda(); the `spaces` runtime virtualizes it) and reuse it inside @spaces.GPU
 # calls. We do that here for the default MiniCPM-V model only, with one hard rule:
-# the resident model is EVICTED before any other big model (Nemotron pipeline or
-# VoxCPM2 voice) loads, preserving the one-big-model-at-a-time guarantee.
+# the resident model is EVICTED before the alternate Nemotron pipeline loads,
+# preserving the one-big-model-at-a-time guarantee.
 #
 # Kill-switch: set the Space variable VLM_RESIDENT=0 to restore the old
 # load-fresh-per-call behavior instantly, with no redeploy.
@@ -1128,49 +1128,6 @@ def extract_topics_from_image(image_path: str) -> tuple[str, str]:
         return topics, f"Topics read from your photo with {VISION_MODEL_ID}. Check them before you rely on them."
     except Exception as exc:
         return "", f"Could not read the photo ({type(exc).__name__}). Type your topics instead."
-    finally:
-        try:
-            import gc
-
-            import torch
-            if model is not None:
-                del model
-            gc.collect()
-            if torch.cuda.is_available():
-                torch.cuda.empty_cache()
-        except Exception:
-            pass
-
-
-VOICE_MODEL_ID = os.getenv("VOICE_MODEL_ID", "openbmb/VoxCPM2")
-
-
-def synthesize_speech(text: str, out_path: str) -> tuple[str | None, str]:
-    """Read text aloud with OpenBMB VoxCPM2, writing a wav to out_path. Returns (path, note).
-
-    Loaded fresh and freed each call (kept off the text/vision models' memory). Any failure
-    returns (None, note) so the caller degrades gracefully to text-only.
-    """
-    spoken = clip_text(compact(text), 700)
-    if not spoken:
-        return None, "Nothing to read yet — build a packet first."
-    try:
-        import soundfile as sf
-
-        from voxcpm import VoxCPM
-    except Exception as exc:  # pragma: no cover - depends on runtime deps
-        return None, f"Read-aloud is unavailable here ({exc})."
-
-    # The voice model must not co-reside with the resident 8B VLM (VRAM safety).
-    free_resident_vlm()
-    model = None
-    try:
-        model = VoxCPM.from_pretrained(VOICE_MODEL_ID, load_denoiser=False)
-        wav = model.generate(text=spoken, inference_timesteps=10)
-        sf.write(out_path, wav, model.tts_model.sample_rate)
-        return out_path, f"Read aloud with {VOICE_MODEL_ID}."
-    except Exception as exc:
-        return None, f"Could not read it aloud ({type(exc).__name__})."
     finally:
         try:
             import gc
