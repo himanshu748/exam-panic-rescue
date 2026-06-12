@@ -2,7 +2,11 @@ gradio==6.0.1
 spaces>=0.50,<1
 transformers>=4.56,<5
 torch>=2.2,<3
-accelerate>=0.33,<2
+# accelerate 1.14.0 and huggingface_hub 1.19.0 (both released 2026-06-11) landed between
+# the last verified-good VoxCPM2 run (2026-06-08) and the read-aloud AssertionError seen
+# on later rebuilds. Pin both below those releases to restore the known-good loader stack.
+accelerate>=0.33,<1.14
+huggingface_hub<1.19
 torchvision>=0.17
 Pillow>=10.0
 voxcpm>=0.1
