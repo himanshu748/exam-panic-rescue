@@ -1353,7 +1353,12 @@ WIZARD_LABELS = [
 
 
 def wizard_progress_html(step: int) -> str:
-    """Render the five-step rescue-flow progress bar with the current step highlighted."""
+    """Render the step progress bar plus the CSS that shows only the current step.
+
+    The show/hide is done with CSS (re-emitted on every step change) instead of Gradio
+    visible= updates: all five step columns stay mounted, which keeps field values warm
+    and swaps steps instantly and reliably.
+    """
     current = max(1, min(len(WIZARD_LABELS), int(step or 1)))
     dots = []
     for index, label in enumerate(WIZARD_LABELS, start=1):
@@ -1362,7 +1367,12 @@ def wizard_progress_html(step: int) -> str:
             f'<li class="wiz-dot {state}"><span class="wiz-bub">{index}</span>'
             f'<span class="wiz-lab">{label}</span></li>'
         )
-    return '<ol class="wiz-progress" aria-label="Rescue flow progress">' + "".join(dots) + "</ol>"
+    hidden = ", ".join(f"#wiz-step-{i}" for i in range(1, len(WIZARD_LABELS) + 1) if i != current)
+    style = (
+        f"<style>{hidden} {{ display: none !important; }} "
+        f"#wiz-step-{current} {{ display: flex !important; }}</style>"
+    )
+    return style + '<ol class="wiz-progress" aria-label="Rescue flow progress">' + "".join(dots) + "</ol>"
 
 
 def _boot_warmup() -> None:
@@ -1478,7 +1488,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                 wizard_step = gr.State(1)
                 wiz_progress = gr.HTML(wizard_progress_html(1), container=False)
 
-                with gr.Column(visible=True, elem_classes=["wiz-step"]) as step1_col:
+                with gr.Column(elem_id="wiz-step-1", elem_classes=["wiz-step"]) as step1_col:
                     gr.HTML(
                         """
 <div class="wiz-head">
@@ -1525,7 +1535,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     )
                     example = gr.Button("Load example", elem_classes=["secondary-action"])
 
-                with gr.Column(visible=False, elem_classes=["wiz-step"]) as step2_col:
+                with gr.Column(elem_id="wiz-step-2", elem_classes=["wiz-step"]) as step2_col:
                     gr.HTML(
                         """
 <div class="wiz-head">
@@ -1569,7 +1579,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                             "MiniCPM-V-4.5 reads the image, extracts visible topics, and uses them to build the rescue plan."
                         )
 
-                with gr.Column(visible=False, elem_classes=["wiz-step"]) as step3_col:
+                with gr.Column(elem_id="wiz-step-3", elem_classes=["wiz-step"]) as step3_col:
                     gr.HTML(
                         """
 <div class="wiz-head">
@@ -1584,7 +1594,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                         "Upload a photo in Step 2, then tap Extract — MiniCPM-V-4.5 reads it and fills your topics box. Always check what it found."
                     )
 
-                with gr.Column(visible=False, elem_classes=["wiz-step"]) as step4_col:
+                with gr.Column(elem_id="wiz-step-4", elem_classes=["wiz-step"]) as step4_col:
                     gr.HTML(
                         """
 <div class="wiz-head">
@@ -1608,7 +1618,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     run = gr.Button("Build my rescue packet", variant="primary", elem_classes=["primary-action"])
                     gen_status = gr.HTML("", elem_id="gen-status", container=False)
 
-                with gr.Column(visible=False, elem_classes=["wiz-step"]) as step5_col:
+                with gr.Column(elem_id="wiz-step-5", elem_classes=["wiz-step"]) as step5_col:
                     gr.HTML(
                         """
 <div class="wiz-head">
@@ -1763,13 +1773,12 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
 
     def _wizard_go(step):
         step = max(1, min(len(WIZARD_LABELS), int(step or 1)))
-        col_updates = [gr.update(visible=(i + 1 == step)) for i in range(len(WIZARD_LABELS))]
         back_update = gr.update(interactive=step > 1)
         if step < len(WIZARD_LABELS):
             next_update = gr.update(value=f"Next: {WIZARD_LABELS[step]} →", interactive=True)
         else:
             next_update = gr.update(value="All steps done ✓", interactive=False)
-        return [step, wizard_progress_html(step)] + col_updates + [back_update, next_update]
+        return [step, wizard_progress_html(step), back_update, next_update]
 
     def _wizard_next(step):
         return _wizard_go(int(step or 1) + 1)
@@ -1790,8 +1799,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
             return _wizard_go(4)
         return _wizard_go(int(step or 3))
 
-    wizard_cols = [step1_col, step2_col, step3_col, step4_col, step5_col]
-    nav_outputs = [wizard_step, wiz_progress] + wizard_cols + [back_btn, next_btn]
+    nav_outputs = [wizard_step, wiz_progress, back_btn, next_btn]
     next_btn.click(_wizard_next, inputs=[wizard_step], outputs=nav_outputs)
     back_btn.click(_wizard_back, inputs=[wizard_step], outputs=nav_outputs)
 
