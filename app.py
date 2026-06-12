@@ -33,6 +33,7 @@ from study_engine import (
     coach_state,
     ensure_weights,
     extract_topics_from_image,
+    free_resident_vlm,
     load_resident_vlm,
     packet_to_markdown,
     synthesize_speech,
@@ -588,6 +589,66 @@ CSS = """
     0%, 100% { opacity: 1; }
     50% { opacity: 0.55; }
   }
+}
+
+.voice-card {
+  border: 1px solid rgba(7, 22, 19, 0.34);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at top right, rgba(0, 88, 68, 0.14), transparent 45%),
+    linear-gradient(135deg, #fffdf7, #f6ecd9);
+  padding: 14px 16px;
+  margin: 4px 0 10px;
+}
+
+.voice-kicker {
+  color: var(--green-dark);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.voice-card h3 {
+  margin: 4px 0 2px;
+  font-family: Georgia, "Times New Roman", ui-serif, serif;
+  color: var(--ink);
+  font-size: 22px;
+  letter-spacing: -0.01em;
+}
+
+.voice-sub {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.45;
+  margin: 0 0 10px;
+}
+
+.voice-action button, button.voice-action {
+  background: var(--green-dark) !important;
+  border: 1px solid rgba(189, 143, 34, 0.55) !important;
+  border-radius: 16px !important;
+  color: #fff8ea !important;
+  font-weight: 850 !important;
+  min-height: 46px;
+  box-shadow: 0 12px 28px rgba(3, 47, 40, 0.30);
+}
+
+.voice-action button:hover, button.voice-action:hover {
+  background: var(--green) !important;
+}
+
+.voice-note {
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 750;
+  line-height: 1.5;
+  margin: 8px 0 0;
+}
+
+.voice-card audio {
+  width: 100%;
 }
 
 .wiz-progress {
@@ -1163,6 +1224,12 @@ def generate(
 ):
     # Download weights on CPU first so a cold model never eats the GPU duration budget.
     ensure_weights(model_choice)
+    rewarm_after = False
+    if not _is_default_vlm(model_choice) and "gguf" not in (model_choice or "").lower():
+        # Alternate GPU model (Nemotron): make sure the resident 16 GB VLM is not
+        # paged into the same window (16 + 8 GB would crowd the 24 GB ceiling).
+        _clear_vram_for_other_model()
+        rewarm_after = True
     if "gguf" in (model_choice or "").lower():
         # The llama.cpp engine runs on CPU — skip the @spaces.GPU wrapper so it does not hold
         # (or wait on) the GPU. build_rescue_plan routes the GGUF through llama-cpp-python.
@@ -1215,6 +1282,8 @@ def generate(
         )
         reason = classify_gpu_failure(exc)
         note = f"{plan.model_note} {reason}".strip() if reason else plan.model_note
+        if rewarm_after:
+            _rewarm_default_vlm()
         return (
             plan.rescue_plan_markdown,
             plan.drill_markdown,
@@ -1224,6 +1293,8 @@ def generate(
             plan.field_note_markdown,
             note,
         )
+    if rewarm_after:
+        _rewarm_default_vlm()
     return (
         plan.rescue_plan_markdown,
         plan.drill_markdown,
@@ -1272,17 +1343,24 @@ def read_aloud(final_sheet_html):
     # contains this kicker; the idle placeholder does not — so this gates out the placeholder
     # (no model load, no audio) until the student has actually built a packet.
     if "Last page before the exam" not in raw:
-        return gr.update(value=None, visible=False), "Build your rescue packet first — then tap Read aloud to hear your final sheet."
+        return gr.update(value=None, visible=False), '<p class="voice-note">Build your rescue packet first — then tap the button to hear your final sheet.</p>' 
     text = re.sub(r"<[^>]+>", " ", raw)
     out = os.path.join(tempfile.gettempdir(), "exam-panic-rescue-final-sheet.wav")
     ensure_weights(VOICE_MODEL_ID)
+    # Voice must get a clean GPU window: evict the resident 16 GB VLM in the MAIN
+    # process so ZeroGPU does not page it in next to VoxCPM2 (that starved the voice
+    # call and made it die mid-warmup). The VLM is re-warmed in the background after.
+    _clear_vram_for_other_model()
     try:
         path, note = _gpu_read_aloud(text, out)
-    except Exception:
-        return gr.update(visible=False), "Read-aloud is busy right now (GPU hiccup). Try again in a moment."
+    except Exception as exc:
+        reason = classify_gpu_failure(exc)
+        return gr.update(visible=False), f'<p class="voice-note">Read-aloud hit a snag. {reason}</p>'
+    finally:
+        _rewarm_default_vlm()
     if path:
-        return gr.update(value=path, visible=True), note
-    return gr.update(visible=False), note
+        return gr.update(value=path, visible=True), f'<p class="voice-note">✅ {note} Tap play.</p>'
+    return gr.update(visible=False), f'<p class="voice-note">{note}</p>' 
 
 
 @spaces.GPU(duration=120)
@@ -1293,10 +1371,17 @@ def _gpu_show_answers(drill_markdown, subject, model_choice):
 
 def show_answers(drill_markdown, subject, model_choice="openbmb/MiniCPM-V-4_5"):
     ensure_weights(model_choice)
+    rewarm_after = False
+    if not _is_default_vlm(model_choice) and "gguf" not in (model_choice or "").lower():
+        _clear_vram_for_other_model()
+        rewarm_after = True
     try:
         return _gpu_show_answers(drill_markdown, subject, model_choice)
     except Exception:
         return "### Worked answers\n\nThe model is busy right now (GPU hiccup). Try again in a moment — or self-check each drill against your notes and mark it right or wrong."
+    finally:
+        if rewarm_after:
+            _rewarm_default_vlm()
 
 
 def load_example():
@@ -1395,10 +1480,32 @@ def _boot_warmup() -> None:
 threading.Thread(target=_boot_warmup, name="boot-warmup", daemon=True).start()
 
 
+def _is_default_vlm(model_id: str) -> bool:
+    return "minicpm-v" in (model_id or "").lower()
+
+
+def _clear_vram_for_other_model() -> None:
+    """Evict the resident MiniCPM-V in the MAIN process, before a GPU window opens.
+
+    ZeroGPU pages main-process CUDA tensors into every @spaces.GPU window, so an
+    eviction that happens inside the worker (engine-level) is too late: the 16 GB
+    VLM still gets paged in alongside VoxCPM2 or Nemotron and can starve or stall
+    the call. Freeing here, in the main process, is what actually releases it.
+    """
+    free_resident_vlm()
+
+
+def _rewarm_default_vlm() -> None:
+    """Re-load the resident MiniCPM-V in the background after another model ran."""
+    threading.Thread(
+        target=load_resident_vlm, args=(DEFAULT_MODEL_ID,), name="vlm-rewarm", daemon=True
+    ).start()
+
+
 GEN_BUSY_HTML = (
     '<p class="coach-hint status-busy">⏳ <b>Working…</b> normally ~10–25 s once warm; the first '
     'run right after a restart can take longer while the small model wakes up. '
-    'Elapsed: <span id="gen-elapsed">0s</span>. Your packet appears in the results panel.</p>'
+    'Elapsed: <span class="epr-elapsed">0s</span>. Your packet appears in the results panel.</p>'
 )
 
 
@@ -1415,7 +1522,10 @@ def _vision_busy():
 
 
 def _read_busy():
-    return "⏳ Synthesizing with OpenBMB VoxCPM2 — the first use downloads the voice model once, then it is quick."
+    return (
+        '<p class="voice-note status-busy">🎙️ Synthesizing with OpenBMB VoxCPM2 — the first use '
+        'downloads the voice model once. Elapsed: <span class="epr-elapsed">0s</span></p>'
+    )
 
 
 def _answers_busy():
@@ -1442,13 +1552,15 @@ APP_JS = """
     let tick = null;
     let lastStep = '';
     const ensureTicker = () => {
-      const el = document.getElementById('gen-elapsed');
-      if (el && !tick) {
-        const t0 = Date.now();
+      const els = document.querySelectorAll('.epr-elapsed');
+      els.forEach((el) => { if (!el.dataset.t0) el.dataset.t0 = String(Date.now()); });
+      if (els.length && !tick) {
         tick = setInterval(() => {
-          const e2 = document.getElementById('gen-elapsed');
-          if (!e2) { clearInterval(tick); tick = null; return; }
-          e2.textContent = Math.round((Date.now() - t0) / 1000) + 's';
+          const live = document.querySelectorAll('.epr-elapsed');
+          if (!live.length) { clearInterval(tick); tick = null; return; }
+          live.forEach((el) => {
+            el.textContent = Math.round((Date.now() - Number(el.dataset.t0)) / 1000) + 's';
+          });
         }, 1000);
       }
     };
@@ -1707,13 +1819,24 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     value='<div class="final-sheet"><h3>Final sheet</h3><p>Build a packet to create the one-page sheet to read before the exam.</p></div>',
                     elem_classes=["panel"],
                 )
-                with gr.Row():
-                    download_btn = gr.DownloadButton("⬇ Download / print", elem_classes=["secondary-action"])
-                    read_btn = gr.Button("🔊 Read aloud", elem_classes=["secondary-action"])
-                read_audio = gr.Audio(label="Final sheet, read aloud", type="filepath", interactive=False, visible=False)
-                read_note = gr.Markdown(
-                    "Build a packet, then hear your final sheet (OpenBMB VoxCPM2)."
-                )
+                download_btn = gr.DownloadButton("⬇ Download / print", elem_classes=["secondary-action"])
+                with gr.Column(elem_classes=["voice-card"]):
+                    gr.HTML(
+                        """
+<div>
+  <div class="voice-kicker">🔊 Voice · OpenBMB VoxCPM2</div>
+  <h3>Hear your final sheet</h3>
+  <p class="voice-sub">Eyes tired, hands shaking? Close the notes and listen to the last page instead.</p>
+</div>
+""",
+                        container=False,
+                    )
+                    read_btn = gr.Button("🎙️ Read my final sheet aloud", elem_classes=["voice-action"])
+                    read_audio = gr.Audio(label="Final sheet · read by OpenBMB VoxCPM2", type="filepath", interactive=False, visible=False)
+                    read_note = gr.HTML(
+                        '<p class="voice-note">Build a packet first — then this speaks the one page you need before walking in.</p>',
+                        container=False,
+                    )
                 with gr.Accordion("More — study receipt · field note · runtime", open=False):
                     demo_receipt_output = gr.Markdown(
                         value="### Study receipt\n\nA short before/after receipt.",
