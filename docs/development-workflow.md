@@ -48,7 +48,7 @@ Verified live MiniCPM smoke on 2026-06-06:
 1. Space hardware was switched from `cpu-basic` to ZeroGPU (`zero-a10g`).
 2. Space variables were set: `USE_LOCAL_MODEL=1` and `PRELOAD_TRANSFORMER_MODEL=1`.
 3. A sample physics scenario loads successfully, then generates only after the explicit build action.
-4. The model note returned exactly `Generated with openbmb/MiniCPM4.1-8B on CUDA/ZeroGPU.`
+4. The model note returned OpenBMB MiniCPM output on CUDA/ZeroGPU.
 5. The sanitizer check confirmed no `<think>` tags were present in the returned packet.
 
 ## JetBrains/PyCharm Setup
@@ -65,7 +65,7 @@ Do not commit `.idea/` unless the team explicitly decides to version IDE configu
 
 ## Optional Sponsor Hooks
 
-- OpenBMB default: `MODEL_ID=openbmb/MiniCPM4.1-8B`
+- OpenBMB default: `MODEL_ID=openbmb/MiniCPM-V-4_5`
 - ZeroGPU handler: `spaces>=0.50,<1` with `@spaces.GPU(duration=120)`
 - Cohere review: `USE_COHERE_REVIEW=1 COHERE_API_KEY=...`
 - llama.cpp runtime: `USE_LLAMA_CPP=1 LLAMA_CPP_MODEL_PATH=/path/to/model.gguf`

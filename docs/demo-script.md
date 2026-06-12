@@ -53,8 +53,8 @@ Show the drill deck and triage clock. These are deliberately practical: what to 
 
 Show the final sheet. This is the student-facing artifact: the last page before the exam. Mention OpenBMB MiniCPM as the default model path and local-first fallback.
 Call out the first-action line, proof-before-stopping line, and the "Do not do" guardrail; those are what keep a panicking student from restarting the spiral.
-Show the study receipt as the before/after checkpoint: confidence, panic pattern, first move, leak to patch, and proof of work.
-End on the copyable field-note prompt: it is how we capture whether a real student actually used the rescue and what changed.
+Start the live coach and show the current action, proof target, next block, manual advance, and 20-second panic reset.
+End on the study receipt as the before/after checkpoint: confidence, panic pattern, first move, leak to patch, and proof of work.
 
 If asked about sponsor proof, use the collapsed build-proof section after the product demo. Do not lead with it.
 

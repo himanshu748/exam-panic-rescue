@@ -11,7 +11,7 @@ from study_engine import DEMO_CASES, build_rescue_plan
 
 
 CASES = DEMO_CASES
-CHECK_COUNT = 7
+CHECK_COUNT = 6
 
 
 def score_case(case: dict[str, object]) -> tuple[int, list[str]]:
@@ -31,7 +31,6 @@ def score_case(case: dict[str, object]) -> tuple[int, list[str]]:
             plan.triage_markdown,
             plan.final_sheet_html,
             plan.demo_receipt_markdown,
-            plan.field_note_markdown,
             plan.model_note,
         ]
     ).lower()
@@ -41,7 +40,6 @@ def score_case(case: dict[str, object]) -> tuple[int, list[str]]:
         "triage boundary": "verify facts with your class notes" in plan.triage_markdown.lower(),
         "final sheet": "final sheet" in plan.final_sheet_html.lower(),
         "study receipt": "study receipt" in plan.demo_receipt_markdown.lower(),
-        "field note": "field note prompt" in plan.field_note_markdown.lower(),
         "specific terms": all(str(term).lower() in combined for term in case["must_include"]),
     }
     missing = [name for name, ok in checks.items() if not ok]

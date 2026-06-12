@@ -5,6 +5,7 @@ import re
 import tempfile
 import threading
 import time
+from html import escape
 
 import gradio as gr
 
@@ -994,6 +995,22 @@ CSS = """
   font-weight: 800;
 }
 
+.coach-action,
+.coach-proof {
+  margin-top: 8px;
+  color: var(--ink);
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.45;
+}
+
+.coach-proof {
+  border-left: 4px solid var(--gold);
+  border-radius: 10px;
+  background: rgba(189, 143, 34, 0.10);
+  padding: 9px 11px;
+}
+
 .coach-done {
   background: rgba(0, 108, 91, 0.12);
   border-color: rgba(0, 88, 68, 0.42);
@@ -1097,7 +1114,7 @@ CLAIM_STATUS_HTML = """
     </div>
     <div class="claim-card">
       <b>Claim after links</b>
-      <span>Best Demo, Community Choice, Field Notes, and Sharing-style build trace once the public video/social/report links exist.</span>
+      <span>Best Demo, Community Choice, and Sharing-style build trace once the public video/social links exist.</span>
     </div>
     <div class="claim-card">
       <b>Do not claim yet</b>
@@ -1105,7 +1122,7 @@ CLAIM_STATUS_HTML = """
     </div>
   </section>
   <section class="model-budget" aria-label="Runtime claim status">
-    <div class="budget-card"><b>Model budget</b><span>MiniCPM4.1-8B fits the <=32B rule; hardware is the real gate.</span></div>
+    <div class="budget-card"><b>Model budget</b><span>MiniCPM-V-4.5 fits the <=32B rule; hardware is the real gate.</span></div>
     <div class="budget-card"><b>ZeroGPU verified</b><span>Live Space smoke generated with MiniCPM on CUDA/ZeroGPU; keep calls focused inside quota.</span></div>
     <div class="budget-card"><b>Default target</b><span>OpenBMB MiniCPM stays the submission-aligned model path when hardware can run it.</span></div>
   </section>
@@ -1119,7 +1136,6 @@ FOOTER_HTML = """
   <span>Backyard AI track</span>
   <span>OpenBMB MiniCPM · ≤32B</span>
   <span>Runs as a Gradio Space on Hugging Face</span>
-  <a href="https://huggingface.co/spaces/build-small-hackathon/exam-panic-rescue-field-notes" target="_blank" rel="noopener noreferrer" style="text-decoration:none"><span style="background:#005844;color:#fff;border-color:#005844">📓 Read the build report →</span></a>
 </footer>
 """
 
@@ -1188,7 +1204,6 @@ def generate(
             plan.triage_markdown,
             plan.final_sheet_html,
             plan.demo_receipt_markdown,
-            plan.field_note_markdown,
             plan.model_note,
         )
     try:
@@ -1228,7 +1243,6 @@ def generate(
             plan.triage_markdown,
             plan.final_sheet_html,
             plan.demo_receipt_markdown,
-            plan.field_note_markdown,
             note,
         )
     if rewarm_after:
@@ -1239,7 +1253,6 @@ def generate(
         plan.triage_markdown,
         plan.final_sheet_html,
         plan.demo_receipt_markdown,
-        plan.field_note_markdown,
         plan.model_note,
     )
 
@@ -1429,6 +1442,92 @@ def _vision_busy():
 
 def _answers_busy():
     return "### Worked answers\n\n⏳ Writing worked answers with the selected small model…"
+
+
+def _plain_text(value) -> str:
+    text = re.sub(r"<[^>]+>", " ", str(value or ""))
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _triage_item(triage_markdown, label: str) -> str:
+    pattern = rf"-\s*{re.escape(label)}:\s*(.+)"
+    match = re.search(pattern, str(triage_markdown or ""), re.IGNORECASE)
+    return match.group(1).strip() if match else ""
+
+
+def _first_csv_item(value: str) -> str:
+    return next((item.strip() for item in value.split(",") if item.strip()), "")
+
+
+def _coach_instruction(label: str, triage_markdown, final_sheet_html) -> tuple[str, str]:
+    current = (label or "").lower()
+    proof = _triage_item(triage_markdown, "Proof target")
+    first_topic = _first_csv_item(_triage_item(triage_markdown, "Topics extracted"))
+    first_leak = _first_csv_item(_triage_item(triage_markdown, "Weaknesses to attack"))
+    topic = first_topic or "your first protected mark"
+    leak = first_leak or "one visible weak spot"
+
+    if "reset" in current:
+        action = f"Write what you remember about {topic}, circle {leak}, then commit to the first drill."
+        stop = proof or "Stop this block once the first target is chosen."
+    elif "core" in current or "recall" in current:
+        action = f"Protect the marks you already know. Rebuild {topic} from memory before checking notes."
+        stop = "Stop when you can explain the first protected topic without reopening every chapter."
+    elif "drill" in current or "practice" in current or "quick test" in current:
+        action = "Answer the drills without notes first. Mark mistakes instead of hiding them."
+        stop = proof or "Stop when one drill is answered and one mistake is repaired."
+    elif "patch" in current or "weak" in current or "second" in current:
+        action = f"Patch {leak}. Repair one mistake, then rerun the same style of question."
+        stop = "Stop when the mistake has a corrected version you can repeat."
+    elif "break" in current:
+        action = "Take the break. Stand up, drink water, and do not open a new topic."
+        stop = "Return when the timer moves to the next block."
+    elif "final" in current:
+        action = "Read only the final sheet. No new chapters, no new videos, no last-minute syllabus expansion."
+        stop = "Stop when the final sheet has been read once calmly."
+    else:
+        action = _plain_text(final_sheet_html)[:180] or "Follow the current block from your triage clock."
+        stop = proof or "Move on when the timer changes blocks."
+    return action, stop
+
+
+def _coach_card(state: dict, triage_markdown, final_sheet_html, panic_until=None) -> str:
+    if panic_until and time.time() < float(panic_until):
+        remaining = max(0, int(round(float(panic_until) - time.time())))
+        return (
+            '<div class="coach-card coach-live">'
+            '<div class="coach-now">Panic reset</div>'
+            f'<div class="coach-time">00:{remaining:02d}</div>'
+            '<div class="coach-action">Put both feet down, unclench your jaw, breathe out slowly, then name the next tiny action.</div>'
+            '<div class="coach-proof">When this ends, return to the same block. Do not restart the whole plan.</div>'
+            "</div>"
+        )
+    if state["done"]:
+        return '<div class="coach-card coach-done">Time is up. Read only your final sheet, then walk in.</div>'
+    rs = state["remaining_s"]
+    nxt = f'Next: {state["next"]}' if state["next"] else "Last block: finish with the final sheet"
+    action, stop = _coach_instruction(state["current"], triage_markdown, final_sheet_html)
+    return (
+        '<div class="coach-card coach-live">'
+        f'<div class="coach-now">Now: {escape(str(state["current"]))}</div>'
+        f'<div class="coach-time">{rs // 60:02d}:{rs % 60:02d} left</div>'
+        f'<div class="coach-next">{escape(nxt)} · block {state["index"] + 1}/{state["count"]}</div>'
+        f'<div class="coach-action"><b>Do now:</b> {escape(action)}</div>'
+        f'<div class="coach-proof"><b>Proof/stop:</b> {escape(stop)}</div>'
+        "</div>"
+    )
+
+
+def _advance_elapsed_to_next_block(minutes, elapsed_seconds: float) -> float:
+    blocks = [(label, mins) for label, mins in time_blocks(int(minutes or 60)) if mins > 0]
+    elapsed_min = max(0.0, elapsed_seconds) / 60.0
+    acc = 0.0
+    for _, block_minutes in blocks:
+        block_end = acc + block_minutes
+        if elapsed_min < block_end:
+            return block_end * 60
+        acc = block_end
+    return sum(block_minutes for _, block_minutes in blocks) * 60
 
 
 
@@ -1685,15 +1784,18 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                 )
                 gr.HTML('<div class="runtime-label">Live coach</div>', container=False)
                 coach_start = gr.State(None)
+                coach_panic_until = gr.State(None)
                 coach_display = gr.HTML(
-                    value='<div class="coach-card coach-idle">Build a packet, then press <b>Start coaching</b> — it runs your triage clock live.</div>',
+                    value='<div class="coach-card coach-idle">Build a packet, then press <b>Start coaching</b>. The coach gives the next action, proof target, and timer for each block.</div>',
                     container=False,
                 )
                 with gr.Row():
                     coach_start_btn = gr.Button("Start coaching", elem_classes=["primary-action"])
+                    coach_done_btn = gr.Button("I finished this block", elem_classes=["secondary-action"])
+                    panic_reset_btn = gr.Button("20-sec panic reset", elem_classes=["secondary-action"])
                     coach_reset_btn = gr.Button("Reset", elem_classes=["secondary-action"])
                 gr.HTML(
-                    '<p class="coach-hint">After generating your rescue plan, start the live coach to walk through the time blocks step by step.</p>',
+                    '<p class="coach-hint">After generating your rescue plan, start the coach. It keeps the current action, proof target, and next block visible while you study.</p>',
                     container=False,
                 )
                 coach_timer = gr.Timer(1.0, active=False)
@@ -1719,13 +1821,9 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     elem_classes=["panel"],
                 )
                 download_btn = gr.DownloadButton("⬇ Download / print", elem_classes=["secondary-action"])
-                with gr.Accordion("More — study receipt · field note · runtime", open=False):
+                with gr.Accordion("More — study receipt · runtime", open=False):
                     demo_receipt_output = gr.Markdown(
                         value="### Study receipt\n\nA short before/after receipt.",
-                        elem_classes=["panel"],
-                    )
-                    field_note_output = gr.Markdown(
-                        value="### Field note prompt\n\nAfter a real study block, use this section to capture honest feedback. Do not invent results.",
                         elem_classes=["panel"],
                     )
                     gr.HTML('<div class="runtime-label">Runtime note</div>', container=False)
@@ -1740,41 +1838,66 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
             triage_output,
             final_sheet_output,
             demo_receipt_output,
-            field_note_output,
             model_note,
         ]
         gr.HTML(FOOTER_HTML, container=False)
     demo.load(js=APP_JS)
 
-    def _start_coach(minutes):
-        return time.time(), gr.Timer(active=True)
+    def _start_coach(minutes, triage_markdown, final_sheet_html):
+        start_ts = time.time()
+        state = coach_state(time_blocks(int(minutes or 60)), 0)
+        return start_ts, None, gr.Timer(active=True), _coach_card(state, triage_markdown, final_sheet_html)
 
     def _reset_coach():
         return (
             None,
+            None,
             gr.Timer(active=False),
-            '<div class="coach-card coach-idle">Coach reset. Press <b>Start coaching</b> to run your triage clock.</div>',
+            '<div class="coach-card coach-idle">Coach reset. Press <b>Start coaching</b> to run your triage clock with action prompts.</div>',
         )
 
-    def _tick_coach(start_ts, minutes):
+    def _tick_coach(start_ts, panic_until, minutes, triage_markdown, final_sheet_html):
         if not start_ts:
             return gr.update()
         state = coach_state(time_blocks(int(minutes or 60)), time.time() - start_ts)
-        if state["done"]:
-            return '<div class="coach-card coach-done">Time is up. Read only your final sheet, then walk in.</div>'
-        rs = state["remaining_s"]
-        nxt = f'Next: {state["next"]}' if state["next"] else "Last block — finish strong"
-        return (
-            '<div class="coach-card coach-live">'
-            f'<div class="coach-now">Now: {state["current"]}</div>'
-            f'<div class="coach-time">{rs // 60:02d}:{rs % 60:02d} left</div>'
-            f'<div class="coach-next">{nxt} · block {state["index"] + 1}/{state["count"]}</div>'
-            "</div>"
-        )
+        return _coach_card(state, triage_markdown, final_sheet_html, panic_until)
 
-    coach_start_btn.click(_start_coach, inputs=[time_left_minutes], outputs=[coach_start, coach_timer])
-    coach_reset_btn.click(_reset_coach, outputs=[coach_start, coach_timer, coach_display])
-    coach_timer.tick(_tick_coach, inputs=[coach_start, time_left_minutes], outputs=[coach_display])
+    def _finish_current_block(start_ts, minutes, triage_markdown, final_sheet_html):
+        if not start_ts:
+            return None, '<div class="coach-card coach-idle">Start the coach first, then you can advance block by block.</div>'
+        next_elapsed = _advance_elapsed_to_next_block(minutes, time.time() - start_ts)
+        new_start = time.time() - next_elapsed
+        state = coach_state(time_blocks(int(minutes or 60)), next_elapsed)
+        return new_start, _coach_card(state, triage_markdown, final_sheet_html)
+
+    def _panic_reset(start_ts, minutes, triage_markdown, final_sheet_html):
+        if not start_ts:
+            return None, '<div class="coach-card coach-idle">Start the coach first, then use panic reset whenever you freeze.</div>'
+        until = time.time() + 20
+        state = coach_state(time_blocks(int(minutes or 60)), time.time() - start_ts)
+        return until, _coach_card(state, triage_markdown, final_sheet_html, until)
+
+    coach_start_btn.click(
+        _start_coach,
+        inputs=[time_left_minutes, triage_output, final_sheet_output],
+        outputs=[coach_start, coach_panic_until, coach_timer, coach_display],
+    )
+    coach_done_btn.click(
+        _finish_current_block,
+        inputs=[coach_start, time_left_minutes, triage_output, final_sheet_output],
+        outputs=[coach_start, coach_display],
+    )
+    panic_reset_btn.click(
+        _panic_reset,
+        inputs=[coach_start, time_left_minutes, triage_output, final_sheet_output],
+        outputs=[coach_panic_until, coach_display],
+    )
+    coach_reset_btn.click(_reset_coach, outputs=[coach_start, coach_panic_until, coach_timer, coach_display])
+    coach_timer.tick(
+        _tick_coach,
+        inputs=[coach_start, coach_panic_until, time_left_minutes, triage_output, final_sheet_output],
+        outputs=[coach_display],
+    )
 
     def _wizard_go(step):
         step = max(1, min(len(WIZARD_LABELS), int(step or 1)))

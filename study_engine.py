@@ -119,7 +119,6 @@ class StudyPlan:
     triage_markdown: str
     final_sheet_html: str
     demo_receipt_markdown: str
-    field_note_markdown: str
     model_note: str
 
 
@@ -201,10 +200,10 @@ def time_blocks(minutes: int) -> list[tuple[str, int]]:
         labels = ["Reset and choose", "Core recall", "Quick test", "Final sheet"]
         weights = [0.12, 0.62, 0.18, 0.08]
     elif total <= 120:
-        labels = ["Reset and rank", "Core pass", "Drill pass", "Patch weak spots", "Final sheet"]
+        labels = ["Reset: pick first target", "Core pass", "Drill pass", "Patch weak spots", "Final sheet"]
         weights = [0.09, 0.34, 0.30, 0.16, 0.11]
     elif total <= 360:
-        labels = ["Reset and rank", "Core pass", "Practice loop", "Break", "Weak-topic patch", "Final sheet"]
+        labels = ["Reset: pick first target", "Core pass", "Practice loop", "Break", "Patch weak spots", "Final sheet"]
         weights = [0.05, 0.26, 0.30, 0.07, 0.22, 0.10]
     else:
         labels = ["Today plan", "Core pass", "Practice loop", "Break", "Second pass", "Final sheet"]
@@ -282,7 +281,7 @@ def chat_messages(data: StudyInput, topics: list[str]) -> list[dict[str, str]]:
 def render_generation_payload(generator, data: StudyInput, topics: list[str]):
     """Build the text-generation payload, disabling MiniCPM 'thinking' when possible.
 
-    MiniCPM4.1 is a hybrid reasoning model: left in thinking mode it can spend the whole
+    Some MiniCPM chat models can spend the whole
     token budget inside a ``<think>`` block, which ``strip_hidden_reasoning`` then discards,
     forcing a silent fallback. We pre-render the chat prompt with ``enable_thinking=False``
     when the tokenizer supports it, and fall back to passing raw messages (the original
@@ -1245,29 +1244,6 @@ def build_final_sheet_html(data: StudyInput, topics: list[str], weaknesses: list
 """
 
 
-def build_field_note_markdown(data: StudyInput, pattern: str, topics: list[str]) -> str:
-    topic = topics[0] if topics else compact(data.subject) or "the first topic"
-    return (
-        "### Field note prompt\n\n"
-        "Use this after the study block if a real student tries the rescue packet:\n\n"
-        f"- Before: I felt stuck because of **{pattern}**.\n"
-        f"- Action: I spent the first two minutes on **{topic}** and followed the proof target.\n"
-        "- Result: My confidence changed from ___/5 to ___/5.\n"
-        "- Keep/change: The most useful part was ___; the confusing part was ___.\n\n"
-        "Copyable field note:\n\n"
-        "```text\n"
-        f"Student: {compact(data.student_name) or 'student'}\n"
-        f"Subject: {compact(data.subject) or 'exam'}\n"
-        f"Panic pattern: {pattern}\n"
-        f"First action topic: {topic}\n"
-        "Confidence before/after: ___/5 -> ___/5\n"
-        "Most useful part: ___\n"
-        "Confusing part: ___\n"
-        "Would use again? yes / no / maybe\n"
-        "```"
-    )
-
-
 def build_demo_receipt_markdown(data: StudyInput, pattern: str, topics: list[str], weaknesses: list[str]) -> str:
     topic = topics[0] if topics else compact(data.subject) or "the first high-probability topic"
     weakness = weaknesses[0] if weaknesses else "the first visible leak"
@@ -1452,7 +1428,6 @@ def build_rescue_plan(
     triage_markdown = "### Triage clock\n\n" + "\n".join(triage_lines)
     final_sheet_html = build_final_sheet_html(data, topics, weaknesses, blocks)
     demo_receipt_markdown = build_demo_receipt_markdown(data, pattern, topics, weaknesses)
-    field_note_markdown = build_field_note_markdown(data, pattern, topics)
     cohere_review = cohere_quality_review(rescue_plan_markdown, drill_markdown, triage_markdown)
     if cohere_review:
         note = f"{note}\n\n{cohere_review}"
@@ -1463,7 +1438,6 @@ def build_rescue_plan(
         triage_markdown,
         final_sheet_html,
         demo_receipt_markdown,
-        field_note_markdown,
         note,
     )
 

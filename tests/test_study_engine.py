@@ -1,6 +1,7 @@
 import json
 import os
 import unittest
+from dataclasses import fields
 from pathlib import Path
 from unittest.mock import patch
 
@@ -36,6 +37,7 @@ from study_engine import (
     proof_checklist,
     split_model_plan_and_drills,
     StudyInput,
+    StudyPlan,
     time_blocks,
 )
 
@@ -69,6 +71,11 @@ class StudyEngineTest(unittest.TestCase):
         blocks = time_blocks(45)
 
         self.assertEqual(sum(minutes for _, minutes in blocks), 45)
+
+    def test_mid_window_reset_block_has_clear_action_label(self):
+        labels = [label for label, _ in time_blocks(120)]
+
+        self.assertIn("Reset: pick first target", labels)
 
     def test_time_blocks_fit_every_supported_window(self):
         sample_minutes = list(range(15, 721, 15)) + [16, 47, 89, 121, 359, 700]
@@ -195,7 +202,7 @@ class StudyEngineTest(unittest.TestCase):
         # Genuine numerical language is still caught.
         self.assertIn("worked problems", detect_weaknesses("I blank on the sums and numericals."))
 
-    def test_build_rescue_plan_has_three_outputs(self):
+    def test_build_rescue_plan_has_student_packet_outputs(self):
         plan = build_rescue_plan(
             student_name="Aarav",
             subject="Physics",
@@ -217,10 +224,7 @@ class StudyEngineTest(unittest.TestCase):
         self.assertIn("Proof before stopping:", plan.final_sheet_html)
         self.assertIn("Study receipt", plan.demo_receipt_markdown)
         self.assertIn("Practical fit", plan.demo_receipt_markdown)
-        self.assertIn("Field note prompt", plan.field_note_markdown)
-        self.assertIn("confidence changed from ___/5 to ___/5", plan.field_note_markdown)
-        self.assertIn("Copyable field note", plan.field_note_markdown)
-        self.assertIn("Would use again? yes / no / maybe", plan.field_note_markdown)
+        self.assertEqual(len(fields(StudyPlan)), 6)
         self.assertIn("Do not do:", plan.final_sheet_html)
         self.assertIn("fallback", plan.model_note.lower())
 
@@ -243,7 +247,7 @@ class StudyEngineTest(unittest.TestCase):
         self.assertIn("Reject two traps", proof)
         self.assertIn("quadratic formula", proof)
 
-    def test_field_note_prompt_uses_panic_pattern_and_topic(self):
+    def test_student_packet_has_no_extra_reflection_prompt(self):
         plan = build_rescue_plan(
             student_name="Mira",
             subject="Biology",
@@ -254,8 +258,18 @@ class StudyEngineTest(unittest.TestCase):
             confidence=1,
         )
 
-        self.assertIn("emergency recall loop", plan.field_note_markdown)
-        self.assertIn("mitosis", plan.field_note_markdown)
+        combined = "\n".join(
+            [
+                plan.rescue_plan_markdown,
+                plan.drill_markdown,
+                plan.triage_markdown,
+                plan.final_sheet_html,
+                plan.demo_receipt_markdown,
+                plan.model_note,
+            ]
+        ).lower()
+        self.assertNotIn("copyable prompt", combined)
+        self.assertNotIn("feedback form", combined)
 
     def test_demo_receipt_summarizes_before_after_path(self):
         plan = build_rescue_plan(

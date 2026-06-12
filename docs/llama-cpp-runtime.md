@@ -159,4 +159,4 @@ Result: `Generated locally with llama.cpp CLI model TheBloke/TinyLlama-1.1B-Chat
 - The OpenBMB MiniCPM GGUF file is public but about `4.97GB`. A download attempt was aborted because Hugging Face/Xet duplicated partial cache pressure on a disk with limited free space.
 - Direct `llama-cli -hf openbmb/MiniCPM4-0.5B-QAT-Int4-GGUF:MiniCPM4-0.5B-QAT-Int4_gptq_aware_q4_0.gguf ...` failed with `failed to download model from Hugging Face`, so use the local-file route above for this repo.
 
-Safer final claim: optional llama.cpp runtime path is implemented and verified locally with an official OpenBMB MiniCPM4 0.5B GGUF; OpenBMB MiniCPM4.1-8B remains the default non-GGUF model target.
+Safer final claim: optional llama.cpp runtime path is implemented and verified locally with an official OpenBMB MiniCPM4 0.5B GGUF; OpenBMB MiniCPM-V-4.5 remains the default non-GGUF model target.

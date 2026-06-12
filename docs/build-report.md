@@ -1,4 +1,4 @@
-# Exam Panic Rescue — Build Report / Field Notes
+# Exam Panic Rescue — Build Report
 
 *A short report for the Build Small Hackathon (Backyard AI track): what I built, why it runs
 on small models, and what I learned shipping it on Hugging Face ZeroGPU.*
@@ -102,8 +102,8 @@ ZeroGPU" or "fallback used" is worth more than a confident black box.
   minutes to a full day.
 - **Designing for a panicking human.** An overflowing examples table became four large one-tap
   panic cases. A dark-mode bug hid dark text on dark surfaces, so I forced the cream light theme
-  the design was built for. The copyable field-note block overflowed on a 390px phone until I
-  wrapped it.
+  the design was built for. The live coach replaced the old passive countdown with one concrete
+  action, a proof target, and a manual advance button for each study block.
 - **The operational reality of a free Space.** A live ZeroGPU Space is real infrastructure. I hit
   a transient ECC GPU fault (fixed by a restart) and a Space that paused itself after a burst of
   heavy testing. The lesson: treat the live demo like production — verify it end to end, and check
@@ -112,8 +112,8 @@ ZeroGPU" or "fallback used" is worth more than a confident black box.
 ## What's still open (honest)
 
 - **The real test is a real student.** The Backyard AI track is judged on whether the person you
-  built it for actually used it. The app ships a field-note prompt to capture an honest
-  before/after — that's the validation I care about most.
+  built it for actually used it. The student-facing app now stops at the receipt instead of asking
+  for feedback inside the panic flow; public validation lives in the build-trace dataset and report.
 - **First-call latency on secondary models.** The prefetch fix trades a fast-but-fake fallback for
   real-but-slower output on a cold first call. For a panic tool, real wins — but warming the model
   before a live demo is still the move.

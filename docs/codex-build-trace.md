@@ -35,7 +35,7 @@ Output:
 - Proof target.
 - Final sheet.
 - Study receipt.
-- Field note prompt.
+- Live coach.
 - Model/runtime note.
 
 The app stays intentionally narrow: one stressed student, one exam, one time box.
@@ -44,7 +44,7 @@ The app stays intentionally narrow: one stressed student, one exam, one time box
 
 - Hugging Face: Gradio Space under `build-small-hackathon`.
 - OpenAI Codex: Codex-assisted app, tests, docs, and iteration trace; final submission needs public GitHub evidence.
-- OpenBMB: default model target is `openbmb/MiniCPM4.1-8B`.
+- OpenBMB: default model target is `openbmb/MiniCPM-V-4_5`.
 - NVIDIA: do not claim Nemotron unless a real Nemotron path is added and smoked; keep the useful no-cloud-API/local-runtime design.
 - Cohere: supporting sponsor only for now; optional quality-review hook exists but is disabled by default and not a final claim target unless criteria appear.
 - JetBrains: reproducible PyCharm/JetBrains workflow docs.
@@ -72,14 +72,15 @@ The app stays intentionally narrow: one stressed student, one exam, one time box
 17. Shifted visible UI language from judge-demo framing to a student-first product framing: build your rescue packet, follow the low-time learning packet, and keep hackathon proof collapsed.
 18. Switched the live Space to ZeroGPU, set `USE_LOCAL_MODEL=1` and `PRELOAD_TRANSFORMER_MODEL=1`, and verified a live MiniCPM response. A follow-up sanitizer removed `<think>` leakage before the final ZeroGPU smoke was accepted.
 19. Removed automatic generation on page load and sample-button clicks so the Space only spends ZeroGPU quota after a user explicitly builds a packet. Public copy now labels bundled cases as review samples, not real-user field data.
+20. Removed the post-session reflection prompt from the product surface and upgraded the live coach so the student sees the current action, proof target, next block, manual advance, and panic reset without any extra model call.
 
 ## Current Evidence
 
 - Local compile passes.
 - Unit tests pass across `18` cases.
-- Readiness smoke scores `28/28`.
+- Readiness smoke scores `24/24`.
 - Local Gradio smoke returned HTTP `200` after the latest UI/output pass.
-- Space package audit includes `15` public-safe files and now requires the public build trace, demo script, field notes, development workflow, llama.cpp plan, and sponsor matrix.
+- Space package audit includes public-safe files and now requires the public build trace, demo script, development workflow, llama.cpp plan, and sponsor matrix.
 - Space smoke checker verifies the public claim-status and student-first product markers in the served app.
 - Hugging Face CLI auth verified `HIMANSHUKUMARJHA` and `build-small-hackathon`.
 - Public GitHub repo exists with Codex-attributed commits: https://github.com/himanshu748/exam-panic-rescue
@@ -88,7 +89,7 @@ The app stays intentionally narrow: one stressed student, one exam, one time box
 - Optional `llama.cpp` CLI app path produced non-fallback model notes with TinyLlama GGUF and an official OpenBMB MiniCPM4 0.5B GGUF local-file route.
 - CPU-only Hugging Face Space runtime now defaults to deterministic fallback unless `USE_LOCAL_MODEL=1` is explicitly set after hardware is upgraded or a small GGUF path is configured.
 - Hugging Face Space API check on 2026-06-06 reports current/requested hardware as `zero-a10g`.
-- Live ZeroGPU generation smoke on 2026-06-06 returned `Generated with openbmb/MiniCPM4.1-8B on CUDA/ZeroGPU.`, produced a study receipt, and confirmed no `<think>` tags in the returned packet.
+- Live ZeroGPU generation smoke on 2026-06-06 returned model-backed OpenBMB MiniCPM output on CUDA/ZeroGPU, produced a study receipt, and confirmed no `<think>` tags in the returned packet.
 - Optional NVIDIA fallback support is implemented behind `USE_NEMOTRON_FALLBACK=1` with default model `nvidia/Nemotron-Mini-4B-Instruct`; it is not a claim until smoke-tested.
 - Recent Codex-attributed commits published the UI and hardware-honesty passes to GitHub and the Hugging Face Space.
 - Latest local visual QA covered desktop `1280px` and mobile `390px` layouts.
@@ -110,4 +111,3 @@ Keep this trace public-safe and add final public links when they exist:
 - Hugging Face Space: https://huggingface.co/spaces/build-small-hackathon/exam-panic-rescue
 - Public app trace dataset: https://huggingface.co/datasets/build-small-hackathon/exam-panic-rescue-build-trace
 - Demo video.
-- Final field notes.
