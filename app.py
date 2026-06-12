@@ -1412,53 +1412,14 @@ def _answers_busy():
     return "### Worked answers\n\n⏳ Writing worked answers with the selected small model…"
 
 
-# Client-side elapsed ticker for the generation status (Gradio js hooks).
-TICK_JS = """
-() => {
-  try {
-    window.__eprT0 = Date.now();
-    if (window.__eprTick) clearInterval(window.__eprTick);
-    window.__eprTick = setInterval(() => {
-      const el = document.getElementById('gen-elapsed');
-      if (el) el.textContent = Math.round((Date.now() - window.__eprT0) / 1000) + 's';
-    }, 1000);
-  } catch (e) {}
-}
-"""
-
-STOP_TICK_JS = """
-() => {
-  try {
-    if (window.__eprTick) clearInterval(window.__eprTick);
-  } catch (e) {}
-}
-"""
-
-# Smooth-scroll the wizard card into view when the step changes (keeps the flow visible
-# on phones, where the tapped button can sit far below the top of the card).
-SCROLL_CARD_JS = """
-() => {
-  try {
-    const el = document.querySelector('.input-card');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  } catch (e) {}
-}
-"""
-
-# After generation finishes, bring the results (coach + plan) into view.
-SCROLL_RESULTS_JS = """
-() => {
-  try {
-    const el = document.querySelector('.output-stack');
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  } catch (e) {}
-}
-"""
 
 
-# The whole design is built for a light/cream surface, so force light mode even when the
-# visitor's device is in dark mode (otherwise dark Gradio surfaces hide the dark label text).
-FORCE_LIGHT_JS = """
+
+# One global client-side script (installed at load): forces the light theme the design
+# is built for, runs the elapsed-seconds ticker whenever a busy status is on screen, and
+# smooth-scrolls the wizard card into view when the active step changes. Implemented as a
+# MutationObserver so it never interferes with Gradio's own event/update plumbing.
+APP_JS = """
 () => {
   try {
     const url = new URL(window.location.href);
@@ -1466,6 +1427,32 @@ FORCE_LIGHT_JS = """
       url.searchParams.set('__theme', 'light');
       window.location.replace(url.toString());
     }
+  } catch (e) {}
+  try {
+    let tick = null;
+    let lastStep = '';
+    const ensureTicker = () => {
+      const el = document.getElementById('gen-elapsed');
+      if (el && !tick) {
+        const t0 = Date.now();
+        tick = setInterval(() => {
+          const e2 = document.getElementById('gen-elapsed');
+          if (!e2) { clearInterval(tick); tick = null; return; }
+          e2.textContent = Math.round((Date.now() - t0) / 1000) + 's';
+        }, 1000);
+      }
+    };
+    const onStepChange = () => {
+      const active = document.querySelector('.wiz-dot.wiz-active .wiz-lab');
+      const label = active ? active.textContent : '';
+      if (label && lastStep && label !== lastStep && label !== 'Live coach') {
+        const card = document.querySelector('.input-card');
+        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      if (label) lastStep = label;
+    };
+    const mo = new MutationObserver(() => { ensureTicker(); onStepChange(); });
+    mo.observe(document.body, { childList: true, subtree: true });
   } catch (e) {}
 }
 """
@@ -1742,7 +1729,7 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
             model_note,
         ]
         gr.HTML(FOOTER_HTML, container=False)
-    demo.load(js=FORCE_LIGHT_JS)
+    demo.load(js=APP_JS)
 
     def _start_coach(minutes):
         return time.time(), gr.Timer(active=True)
@@ -1805,17 +1792,17 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
 
     wizard_cols = [step1_col, step2_col, step3_col, step4_col, step5_col]
     nav_outputs = [wizard_step, wiz_progress] + wizard_cols + [back_btn, next_btn]
-    next_btn.click(_wizard_next, inputs=[wizard_step], outputs=nav_outputs, js=SCROLL_CARD_JS)
-    back_btn.click(_wizard_back, inputs=[wizard_step], outputs=nav_outputs, js=SCROLL_CARD_JS)
+    next_btn.click(_wizard_next, inputs=[wizard_step], outputs=nav_outputs)
+    back_btn.click(_wizard_back, inputs=[wizard_step], outputs=nav_outputs)
 
-    run.click(_gen_busy, outputs=[gen_status], queue=False, js=TICK_JS).then(
+    run.click(_gen_busy, outputs=[gen_status], queue=False).then(
         generate,
         inputs=inputs + [model_choice, syllabus_image],
         outputs=outputs,
         scroll_to_output=True,
         api_name="generate",
-    ).then(_gen_done, outputs=[gen_status], queue=False, js=STOP_TICK_JS).then(
-        _wizard_fifth, outputs=nav_outputs, queue=False, js=SCROLL_RESULTS_JS,
+    ).then(_gen_done, outputs=[gen_status], queue=False).then(
+        _wizard_fifth, outputs=nav_outputs, queue=False,
     )
 
     extract_btn.click(_vision_busy, outputs=[vision_note], queue=False).then(
@@ -1842,11 +1829,11 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
         api_name="show_answers",
     )
     example.click(load_example, outputs=inputs, queue=False).then(
-        _wizard_first, outputs=nav_outputs, queue=False, js=SCROLL_CARD_JS,
+        _wizard_first, outputs=nav_outputs, queue=False,
     )
     for case_button, case_index in case_buttons:
         case_button.click(CASE_LOADERS[case_index], outputs=inputs, queue=False).then(
-            _wizard_first, outputs=nav_outputs, queue=False, js=SCROLL_CARD_JS,
+            _wizard_first, outputs=nav_outputs, queue=False,
         )
 
 
