@@ -26,7 +26,6 @@ from study_engine import (
     DEMO_CASES,
     EXAMPLE_INPUT,
     VISION_MODEL_ID,
-    VOICE_MODEL_ID,
     answer_drills,
     build_rescue_plan,
     classify_gpu_failure,
@@ -36,7 +35,6 @@ from study_engine import (
     free_resident_vlm,
     load_resident_vlm,
     packet_to_markdown,
-    synthesize_speech,
     time_blocks,
 )
 
@@ -589,66 +587,6 @@ CSS = """
     0%, 100% { opacity: 1; }
     50% { opacity: 0.55; }
   }
-}
-
-.voice-card {
-  border: 1px solid rgba(7, 22, 19, 0.34);
-  border-radius: 20px;
-  background:
-    radial-gradient(circle at top right, rgba(0, 88, 68, 0.14), transparent 45%),
-    linear-gradient(135deg, #fffdf7, #f6ecd9);
-  padding: 14px 16px;
-  margin: 4px 0 10px;
-}
-
-.voice-kicker {
-  color: var(--green-dark);
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-}
-
-.voice-card h3 {
-  margin: 4px 0 2px;
-  font-family: Georgia, "Times New Roman", ui-serif, serif;
-  color: var(--ink);
-  font-size: 22px;
-  letter-spacing: -0.01em;
-}
-
-.voice-sub {
-  color: var(--muted);
-  font-size: 14px;
-  font-weight: 750;
-  line-height: 1.45;
-  margin: 0 0 10px;
-}
-
-.voice-action button, button.voice-action {
-  background: var(--green-dark) !important;
-  border: 1px solid rgba(189, 143, 34, 0.55) !important;
-  border-radius: 16px !important;
-  color: #fff8ea !important;
-  font-weight: 850 !important;
-  min-height: 46px;
-  box-shadow: 0 12px 28px rgba(3, 47, 40, 0.30);
-}
-
-.voice-action button:hover, button.voice-action:hover {
-  background: var(--green) !important;
-}
-
-.voice-note {
-  color: var(--muted);
-  font-size: 14px;
-  font-weight: 750;
-  line-height: 1.5;
-  margin: 8px 0 0;
-}
-
-.voice-card audio {
-  width: 100%;
 }
 
 .wiz-progress {
@@ -1333,37 +1271,6 @@ def download_packet(rescue, drill, triage, final_sheet_html, receipt):
 
 
 @spaces.GPU(duration=120)
-def _gpu_read_aloud(text, out_path):
-    return synthesize_speech(text, out_path)
-
-
-def read_aloud(final_sheet_html):
-    raw = final_sheet_html or ""
-    # Voice only works once a real packet has been generated. The generated final sheet always
-    # contains this kicker; the idle placeholder does not — so this gates out the placeholder
-    # (no model load, no audio) until the student has actually built a packet.
-    if "Last page before the exam" not in raw:
-        return gr.update(value=None, visible=False), '<p class="voice-note">Build your rescue packet first — then tap the button to hear your final sheet.</p>' 
-    text = re.sub(r"<[^>]+>", " ", raw)
-    out = os.path.join(tempfile.gettempdir(), "exam-panic-rescue-final-sheet.wav")
-    ensure_weights(VOICE_MODEL_ID)
-    # Voice must get a clean GPU window: evict the resident 16 GB VLM in the MAIN
-    # process so ZeroGPU does not page it in next to VoxCPM2 (that starved the voice
-    # call and made it die mid-warmup). The VLM is re-warmed in the background after.
-    _clear_vram_for_other_model()
-    try:
-        path, note = _gpu_read_aloud(text, out)
-    except Exception as exc:
-        reason = classify_gpu_failure(exc)
-        return gr.update(visible=False), f'<p class="voice-note">Read-aloud hit a snag. {reason}</p>'
-    finally:
-        _rewarm_default_vlm()
-    if path:
-        return gr.update(value=path, visible=True), f'<p class="voice-note">✅ {note} Tap play.</p>'
-    return gr.update(visible=False), f'<p class="voice-note">{note}</p>' 
-
-
-@spaces.GPU(duration=120)
 def _gpu_show_answers(drill_markdown, subject, model_choice):
     answers, _note = answer_drills(drill_markdown, subject, model_choice)
     return answers
@@ -1464,15 +1371,14 @@ def _boot_warmup() -> None:
     """Warm the default model before the first student clicks.
 
     Downloads the MiniCPM-V-4.5 weights and loads them resident (the documented
-    ZeroGPU main-process pattern), then pre-downloads the VoxCPM2 voice weights.
-    Runs in a daemon thread at startup so the UI is never blocked; on CPU-only or
-    local runs every step is a guarded no-op. This removes the silent 60-90 s
-    first-click penalty that previously followed every Space rebuild.
+    ZeroGPU main-process pattern). Runs in a daemon thread at startup so the UI is
+    never blocked; on CPU-only or local runs every step is a guarded no-op. This
+    removes the silent 60-90 s first-click penalty that previously followed every
+    Space rebuild.
     """
     try:
         ensure_weights(DEFAULT_MODEL_ID)
         load_resident_vlm(DEFAULT_MODEL_ID)
-        ensure_weights(VOICE_MODEL_ID)
     except Exception:
         pass
 
@@ -1489,8 +1395,8 @@ def _clear_vram_for_other_model() -> None:
 
     ZeroGPU pages main-process CUDA tensors into every @spaces.GPU window, so an
     eviction that happens inside the worker (engine-level) is too late: the 16 GB
-    VLM still gets paged in alongside VoxCPM2 or Nemotron and can starve or stall
-    the call. Freeing here, in the main process, is what actually releases it.
+    VLM still gets paged in alongside the alternate Nemotron pipeline and can starve
+    or stall the call. Freeing here, in the main process, is what actually releases it.
     """
     free_resident_vlm()
 
@@ -1519,13 +1425,6 @@ def _gen_done():
 
 def _vision_busy():
     return "⏳ Reading your photo with MiniCPM-V-4.5 — usually well under a minute when the model is warm."
-
-
-def _read_busy():
-    return (
-        '<p class="voice-note status-busy">🎙️ Synthesizing with OpenBMB VoxCPM2 — the first use '
-        'downloads the voice model once. Elapsed: <span class="epr-elapsed">0s</span></p>'
-    )
 
 
 def _answers_busy():
@@ -1820,23 +1719,6 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
                     elem_classes=["panel"],
                 )
                 download_btn = gr.DownloadButton("⬇ Download / print", elem_classes=["secondary-action"])
-                with gr.Column(elem_classes=["voice-card"]):
-                    gr.HTML(
-                        """
-<div>
-  <div class="voice-kicker">🔊 Voice · OpenBMB VoxCPM2</div>
-  <h3>Hear your final sheet</h3>
-  <p class="voice-sub">Eyes tired, hands shaking? Close the notes and listen to the last page instead.</p>
-</div>
-""",
-                        container=False,
-                    )
-                    read_btn = gr.Button("🎙️ Read my final sheet aloud", elem_classes=["voice-action"])
-                    read_audio = gr.Audio(label="Final sheet · read by OpenBMB VoxCPM2", type="filepath", interactive=False, visible=False)
-                    read_note = gr.HTML(
-                        '<p class="voice-note">Build a packet first — then this speaks the one page you need before walking in.</p>',
-                        container=False,
-                    )
                 with gr.Accordion("More — study receipt · field note · runtime", open=False):
                     demo_receipt_output = gr.Markdown(
                         value="### Study receipt\n\nA short before/after receipt.",
@@ -1946,12 +1828,6 @@ with gr.Blocks(title="Exam Panic Rescue") as demo:
         download_packet,
         inputs=[rescue_output, drill_output, triage_output, final_sheet_output, demo_receipt_output],
         outputs=download_btn,
-    )
-    read_btn.click(_read_busy, outputs=[read_note], queue=False).then(
-        read_aloud,
-        inputs=[final_sheet_output],
-        outputs=[read_audio, read_note],
-        api_name="read_aloud",
     )
     answers_btn.click(_answers_busy, outputs=[answers_output], queue=False).then(
         show_answers,
